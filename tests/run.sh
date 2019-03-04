@@ -20,7 +20,7 @@ function main
   # push data (HTTP-PUT) to URL1
   curl \
     -H "User-Agent: Robocop" \
-    -X PUT -d "Murphy" \
+    -X PUT -d "@$scriptDir/expected.txt" \
     http://$host/OmniConsumerProducts
 
   # push data (HTTP-PUT) to URL2
