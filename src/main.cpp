@@ -93,6 +93,7 @@ std::map<std::string, std::string> resources;
 
 void httpClientThread_GET(HttpRequest req, IStream* s)
 {
+  DbgTrace("Get '%s'\n", req.url.c_str());
   auto i_res = resources.find(req.url);
 
   if(i_res == resources.end())
@@ -114,7 +115,6 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
 
 void httpClientThread_PUT(HttpRequest req, IStream* s)
 {
-  DbgTrace("Adding '%s'\n", req.url.c_str());
   auto& data = resources[req.url];
 
   if(req.headers["Transfer-Encoding"] == "chunked")
@@ -132,15 +132,21 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
       int size = 0;
       int ret = sscanf(sizeLine.c_str(), "%x", &size);
 
-      if(ret != 1 || size == 0)
+      if(ret != 1)
         break;
 
-      auto offset = data.size();
-      data.resize(offset + size);
-      s->read((uint8_t*)&data[offset], size);
+      if(size > 0)
+      {
+        auto offset = data.size();
+        data.resize(offset + size);
+        s->read((uint8_t*)&data[offset], size);
+      }
 
       uint8_t eol[2];
       s->read(eol, sizeof eol);
+
+      if(size == 0)
+        break;
     }
   }
   else
@@ -152,6 +158,8 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
     if(size)
       s->read((uint8_t*)data.data(), size);
   }
+
+  DbgTrace("Added '%s' (%d bytes)\n", req.url.c_str(), (int)data.size());
 
   writeLine(s, "HTTP/1.1 200 OK");
   writeLine(s, "Content-Length: 0");
