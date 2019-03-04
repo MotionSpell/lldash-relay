@@ -109,7 +109,9 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
 
   auto& data = resources[req.url];
   data.resize(size);
-  s->read((uint8_t*)data.data(), size);
+
+  if(size)
+    s->read((uint8_t*)data.data(), size);
 
   writeLine(s, "HTTP/1.1 200 OK");
   writeLine(s, "Content-Length: 0");
