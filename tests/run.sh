@@ -26,6 +26,7 @@ function main
   # push data (HTTP-PUT) to URL2
   curl \
     -H "User-Agent: Robocop" \
+    -H "Transfer-Encoding: chunked" \
     -X PUT -d "Dick Jones is the guy" \
     http://$host/OmniConsumerProducts/enemies
 

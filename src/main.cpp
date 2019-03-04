@@ -132,7 +132,7 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
       int size = 0;
       int ret = sscanf(sizeLine.c_str(), "%x", &size);
 
-      if(ret != 1)
+      if(ret != 1 || size == 0)
         break;
 
       auto offset = data.size();
