@@ -4,6 +4,7 @@
 #include <cstdio> // perror
 #include <cstdarg>
 #include <thread>
+#include <csignal>
 
 using namespace std;
 
@@ -12,6 +13,14 @@ using namespace std;
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h> // close
+
+static int g_socket;
+static void sigIntHandler(int)
+{
+  auto socket = g_socket;
+  g_socket = -1;
+  close(socket);
+}
 
 void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
 {
@@ -43,6 +52,11 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
   {
     perror("socket");
     throw runtime_error("can't create socket");
+  }
+
+  {
+    g_socket = sock;
+    std::signal(SIGINT, sigIntHandler);
   }
 
   {
@@ -91,7 +105,12 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
     int clientSocket = accept(sock, (sockaddr*)&client_address, &address_len);
 
     if(clientSocket < 0)
+    {
+      if(g_socket == -1)
+        break; // exit thread
+
       perror("accept");
+    }
 
     auto t = thread(clientThread, clientSocket);
     t.detach();

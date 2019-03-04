@@ -14,9 +14,9 @@ function main
     -X PUT -d "Murphy" \
     http://127.0.0.1:9000/OmniConsumerProducts
 
-  kill $pid
+  kill -INT $pid
 
-  wait
+  wait $pid
   echo OK
 }
 
