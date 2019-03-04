@@ -93,8 +93,17 @@ std::map<std::string, std::string> resources;
 
 void httpClientThread_GET(HttpRequest req, IStream* s)
 {
+  auto i_res = resources.find(req.url);
+
+  if(i_res == resources.end())
+  {
+    writeLine(s, "HTTP/1.1 404 Not Found");
+    writeLine(s, "");
+    return;
+  }
+
   writeLine(s, "HTTP/1.1 200 OK");
-  auto& data = resources[req.url];
+  auto& data = i_res->second;
   char buffer[256];
   snprintf(buffer, sizeof buffer, "Content-Length: %d", (int)data.size());
   writeLine(s, buffer);
