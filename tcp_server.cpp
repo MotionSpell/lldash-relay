@@ -11,7 +11,7 @@ using namespace std;
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <unistd.h> // read, write
+#include <unistd.h> // close
 
 void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
 {
