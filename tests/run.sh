@@ -16,23 +16,36 @@ function main
 
   sleep 0.01
 
-  # push data (HTTP-PUT)
+  # push data (HTTP-PUT) to URL1
   curl \
     -H "User-Agent: Robocop" \
     -X PUT -d "Murphy" \
     http://127.0.0.1:9000/OmniConsumerProducts
 
-  # get data back (HTTP-GET)
+  # push data (HTTP-PUT) to URL2
+  curl \
+    -H "User-Agent: Robocop" \
+    -X PUT -d "DickJones" \
+    http://127.0.0.1:9000/OmniConsumerProducts/enemies
+
+  # get data back (HTTP-GET) from URL1
   curl \
     --silent \
     -H "User-Agent: Robocop" \
     -X GET \
     http://127.0.0.1:9000/OmniConsumerProducts > $tmpDir/result.txt
 
+  # get data back (HTTP-GET) from URL2
+  curl \
+    --silent \
+    -H "User-Agent: Robocop" \
+    -X GET \
+    http://127.0.0.1:9000/OmniConsumerProducts/enemies > $tmpDir/result2.txt
+
   kill -INT $pid
   wait $pid
 
-  compare $scriptDir/expected.txt $tmpDir/result.txt
+  compare $scriptDir/expected2.txt $tmpDir/result2.txt
 
   echo OK
 }

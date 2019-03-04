@@ -89,6 +89,40 @@ HttpRequest parseRequest(IStream* s)
   return r;
 }
 
+std::map<std::string, std::string> resources;
+
+void httpClientThread_GET(HttpRequest req, IStream* s)
+{
+  writeLine(s, "HTTP/1.1 200 OK");
+  auto& data = resources[req.url];
+  char buffer[256];
+  snprintf(buffer, sizeof buffer, "Content-Length: %d", (int)data.size());
+  writeLine(s, buffer);
+  writeLine(s, "");
+  writeLine(s, data.c_str());
+  writeLine(s, "");
+}
+
+void httpClientThread_PUT(HttpRequest req, IStream* s)
+{
+  auto size = atoi(req.headers["Content-Length"].c_str());
+
+  auto& data = resources[req.url];
+  data.resize(size);
+  s->read((uint8_t*)data.data(), size);
+
+  writeLine(s, "HTTP/1.1 200 OK");
+  writeLine(s, "Content-Length: 0");
+  writeLine(s, "");
+}
+
+void httpClientThread_NotImplemented(IStream* s)
+{
+  writeLine(s, "HTTP/1.1 500 Not implemented");
+  writeLine(s, "Content-Length: 0");
+  writeLine(s, "");
+}
+
 void httpClientThread(IStream* s)
 {
   DbgTrace("HttpClientThread\n");
@@ -100,11 +134,12 @@ void httpClientThread(IStream* s)
   for(auto& hdr : req.headers)
     DbgTrace("[Header] '%s' '%s'\n", hdr.first.c_str(), hdr.second.c_str());
 
-  writeLine(s, "HTTP/1.1 200 OK");
-  writeLine(s, "Connection: close");
-  writeLine(s, "Content-Length: 6");
-  writeLine(s, "");
-  writeLine(s, "Murphy");
+  if(req.action == "GET")
+    httpClientThread_GET(req, s);
+  else if(req.action == "PUT" || req.action == "POST")
+    httpClientThread_PUT(req, s);
+  else
+    httpClientThread_NotImplemented(s);
 
   DbgTrace("HttpClientThread exited\n");
 }
