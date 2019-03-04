@@ -109,8 +109,7 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
   snprintf(buffer, sizeof buffer, "Content-Length: %d", (int)data.size());
   writeLine(s, buffer);
   writeLine(s, "");
-  writeLine(s, data.c_str());
-  writeLine(s, "");
+  s->write((uint8_t*)data.data(), data.size());
 }
 
 void httpClientThread_PUT(HttpRequest req, IStream* s)
