@@ -115,6 +115,8 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
     auto t = thread(clientThread, clientSocket);
     t.detach();
   }
+
+  DbgTrace("Server closed\n");
 }
 
 void DbgTrace(const char* format, ...)
