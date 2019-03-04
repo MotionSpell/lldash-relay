@@ -105,13 +105,44 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
 
 void httpClientThread_PUT(HttpRequest req, IStream* s)
 {
-  auto size = atoi(req.headers["Content-Length"].c_str());
-
+  DbgTrace("Adding '%s'\n", req.url.c_str());
   auto& data = resources[req.url];
-  data.resize(size);
 
-  if(size)
-    s->read((uint8_t*)data.data(), size);
+  if(req.headers["Transfer-Encoding"] == "chunked")
+  {
+    writeLine(s, "HTTP/1.1 100 Continue");
+    writeLine(s, "");
+
+    while(1)
+    {
+      auto sizeLine = readLine(s);
+
+      if(sizeLine.empty())
+        break;
+
+      int size = 0;
+      int ret = sscanf(sizeLine.c_str(), "%x", &size);
+
+      if(ret != 1)
+        break;
+
+      auto offset = data.size();
+      data.resize(offset + size);
+      s->read((uint8_t*)&data[offset], size);
+
+      uint8_t eol[2];
+      s->read(eol, sizeof eol);
+    }
+  }
+  else
+  {
+    auto size = atoi(req.headers["Content-Length"].c_str());
+
+    data.resize(size);
+
+    if(size)
+      s->read((uint8_t*)data.data(), size);
+  }
 
   writeLine(s, "HTTP/1.1 200 OK");
   writeLine(s, "Content-Length: 0");
