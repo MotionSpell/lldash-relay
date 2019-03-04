@@ -102,8 +102,9 @@ void httpClientThread(IStream* s)
 
   writeLine(s, "HTTP/1.1 200 OK");
   writeLine(s, "Connection: close");
-  writeLine(s, "Content-Length: 0");
+  writeLine(s, "Content-Length: 6");
   writeLine(s, "");
+  writeLine(s, "Murphy");
 
   DbgTrace("HttpClientThread exited\n");
 }
