@@ -26,7 +26,7 @@ function main
   # push data (HTTP-PUT) to URL2
   curl \
     -H "User-Agent: Robocop" \
-    -X PUT -d "DickJones" \
+    -X PUT -d "Dick Jones is the guy" \
     http://$host/OmniConsumerProducts/enemies
 
   # get data back (HTTP-GET) from URL1
