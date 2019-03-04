@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+
+export BIN=bin
+
+find src -name "*.cpp" -or -name "*.h" | while read f; do
+  uncrustify -q -c scripts/uncrustify.cfg --no-backup "$f"
+done
+
+make -j`nproc`
+
+readonly t1=$(date +%s)
+./tests/run.sh $BIN
+readonly t2=$(date +%s)
+echo "$((t2-t1))s"
+

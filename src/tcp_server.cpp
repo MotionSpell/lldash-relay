@@ -38,6 +38,7 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
     };
 
   const int sock = socket(AF_INET, SOCK_STREAM, 0);
+
   if(sock < 0)
   {
     perror("socket");
@@ -104,3 +105,4 @@ void DbgTrace(const char* format, ...)
   vprintf(format, args);
   va_end(args);
 }
+

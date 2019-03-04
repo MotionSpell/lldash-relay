@@ -1,8 +1,8 @@
 BIN?=bin
 
 $(BIN)/evanescent.exe: \
-	$(BIN)/main.cpp.o \
-	$(BIN)/tcp_server.cpp.o \
+	$(BIN)/src/main.cpp.o \
+	$(BIN)/src/tcp_server.cpp.o \
 
 LDFLAGS+=-pthread
 
