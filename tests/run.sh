@@ -13,6 +13,7 @@ function main
 {
   $BIN/evanescent.exe &
   local readonly pid=$!
+  local readonly host="127.0.0.1:9000"
 
   sleep 0.01
 
@@ -20,27 +21,27 @@ function main
   curl \
     -H "User-Agent: Robocop" \
     -X PUT -d "Murphy" \
-    http://127.0.0.1:9000/OmniConsumerProducts
+    http://$host/OmniConsumerProducts
 
   # push data (HTTP-PUT) to URL2
   curl \
     -H "User-Agent: Robocop" \
     -X PUT -d "DickJones" \
-    http://127.0.0.1:9000/OmniConsumerProducts/enemies
+    http://$host/OmniConsumerProducts/enemies
 
   # get data back (HTTP-GET) from URL1
   curl \
     --silent \
     -H "User-Agent: Robocop" \
     -X GET \
-    http://127.0.0.1:9000/OmniConsumerProducts > $tmpDir/result.txt
+    http://$host/OmniConsumerProducts > $tmpDir/result.txt
 
   # get data back (HTTP-GET) from URL2
   curl \
     --silent \
     -H "User-Agent: Robocop" \
     -X GET \
-    http://127.0.0.1:9000/OmniConsumerProducts/enemies > $tmpDir/result2.txt
+    http://$host/OmniConsumerProducts/enemies > $tmpDir/result2.txt
 
   kill -INT $pid
   wait $pid
