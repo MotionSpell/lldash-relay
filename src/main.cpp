@@ -125,14 +125,15 @@ void httpClientThread_NotImplemented(IStream* s)
 
 void httpClientThread(IStream* s)
 {
-  DbgTrace("HttpClientThread\n");
-
   auto req = parseRequest(s);
 
-  DbgTrace("[Request] '%s' '%s' '%s'\n", req.action.c_str(), req.url.c_str(), req.version.c_str());
+  if(0)
+  {
+    DbgTrace("[Request] '%s' '%s' '%s'\n", req.action.c_str(), req.url.c_str(), req.version.c_str());
 
-  for(auto& hdr : req.headers)
-    DbgTrace("[Header] '%s' '%s'\n", hdr.first.c_str(), hdr.second.c_str());
+    for(auto& hdr : req.headers)
+      DbgTrace("[Header] '%s' '%s'\n", hdr.first.c_str(), hdr.second.c_str());
+  }
 
   if(req.action == "GET")
     httpClientThread_GET(req, s);
@@ -140,8 +141,6 @@ void httpClientThread(IStream* s)
     httpClientThread_PUT(req, s);
   else
     httpClientThread_NotImplemented(s);
-
-  DbgTrace("HttpClientThread exited\n");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
