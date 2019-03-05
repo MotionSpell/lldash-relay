@@ -116,6 +116,14 @@ struct Resource
     return m_data.size();
   }
 
+  // sends the whole resource data to 'sendingFunc', possibly in chunks,
+  // and possibly blocking until the resource is completely uploaded.
+  void sendWhole(std::function<void(const uint8_t* dst, size_t len)> sendingFunc)
+  {
+    sendingFunc((const uint8_t*)m_data.data(), (int)m_data.size());
+  }
+
+private:
   std::string m_data;
 };
 
@@ -137,14 +145,18 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
   writeLine(s, "Transfer-Encoding: chunked");
   writeLine(s, "");
 
-  {
-    auto& chunk = i_res->second->m_data;
-    char buffer[256];
-    snprintf(buffer, sizeof buffer, "%X", (int)chunk.size());
-    writeLine(s, buffer);
-    s->write((uint8_t*)chunk.data(), chunk.size());
-    writeLine(s, "");
-  }
+  auto onSend = [s] (const uint8_t* buf, int len)
+    {
+      char sizeLine[256];
+      snprintf(sizeLine, sizeof sizeLine, "%X", len);
+      writeLine(s, sizeLine);
+
+      s->write(buf, len);
+      writeLine(s, "");
+    };
+
+  auto& res = i_res->second;
+  res->sendWhole(onSend);
 
   // last chunk
   writeLine(s, "0");
