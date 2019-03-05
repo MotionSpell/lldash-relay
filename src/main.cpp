@@ -89,7 +89,17 @@ HttpRequest parseRequest(IStream* s)
   return r;
 }
 
-std::map<std::string, std::string> resources;
+struct Resource
+{
+  Resource() = default;
+
+  Resource(Resource const &) = delete;
+  Resource & operator = (Resource const &) = delete;
+
+  std::string data;
+};
+
+std::map<std::string, Resource> resources;
 
 void httpClientThread_GET(HttpRequest req, IStream* s)
 {
@@ -104,7 +114,7 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
   }
 
   writeLine(s, "HTTP/1.1 200 OK");
-  auto& data = i_res->second;
+  auto& data = i_res->second.data;
   char buffer[256];
   snprintf(buffer, sizeof buffer, "Content-Length: %d", (int)data.size());
   writeLine(s, buffer);
@@ -114,7 +124,7 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
 
 void httpClientThread_PUT(HttpRequest req, IStream* s)
 {
-  auto& data = resources[req.url];
+  auto& data = resources[req.url].data;
 
   if(req.headers["Transfer-Encoding"] == "chunked")
   {
