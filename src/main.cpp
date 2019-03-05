@@ -134,12 +134,16 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
   }
 
   writeLine(s, "HTTP/1.1 200 OK");
+  writeLine(s, "Transfer-Encoding: chunked");
+  writeLine(s, "");
   auto& data = i_res->second->m_data;
   char buffer[256];
-  snprintf(buffer, sizeof buffer, "Content-Length: %d", (int)data.size());
+  snprintf(buffer, sizeof buffer, "%X", (int)data.size());
   writeLine(s, buffer);
-  writeLine(s, "");
   s->write((uint8_t*)data.data(), data.size());
+  writeLine(s, "");
+  writeLine(s, "0");
+  writeLine(s, "");
 }
 
 void httpClientThread_PUT(HttpRequest req, IStream* s)
