@@ -4,7 +4,10 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <cstring> // memcpy
 #include <sstream>
+#include <memory>
+#include <vector>
 
 #include "tcp_server.h"
 
@@ -96,10 +99,27 @@ struct Resource
   Resource(Resource const &) = delete;
   Resource & operator = (Resource const &) = delete;
 
-  std::string data;
+  void clear()
+  {
+    m_data.clear();
+  }
+
+  void append(const uint8_t* src, size_t len)
+  {
+    auto offset = m_data.size();
+    m_data.resize(offset + len);
+    memcpy(&m_data[offset], src, len);
+  }
+
+  size_t size() const
+  {
+    return m_data.size();
+  }
+
+  std::string m_data;
 };
 
-std::map<std::string, Resource> resources;
+std::map<std::string, std::unique_ptr<Resource>> resources;
 
 void httpClientThread_GET(HttpRequest req, IStream* s)
 {
@@ -114,7 +134,7 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
   }
 
   writeLine(s, "HTTP/1.1 200 OK");
-  auto& data = i_res->second.data;
+  auto& data = i_res->second->m_data;
   char buffer[256];
   snprintf(buffer, sizeof buffer, "Content-Length: %d", (int)data.size());
   writeLine(s, buffer);
@@ -124,14 +144,16 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
 
 void httpClientThread_PUT(HttpRequest req, IStream* s)
 {
-  auto& data = resources[req.url].data;
+  resources[req.url] = make_unique<Resource>();
+
+  auto& res = resources[req.url];
 
   if(req.headers["Transfer-Encoding"] == "chunked")
   {
     writeLine(s, "HTTP/1.1 100 Continue");
     writeLine(s, "");
 
-    data.clear();
+    res->clear();
 
     while(1)
     {
@@ -148,9 +170,10 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
 
       if(size > 0)
       {
-        auto offset = data.size();
-        data.resize(offset + size);
-        s->read((uint8_t*)&data[offset], size);
+        std::vector<uint8_t> buffer(size);
+        s->read(buffer.data(), buffer.size());
+
+        res->append(buffer.data(), buffer.size());
       }
 
       uint8_t eol[2];
@@ -164,13 +187,16 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
   {
     auto size = atoi(req.headers["Content-Length"].c_str());
 
-    data.resize(size);
+    if(size > 0)
+    {
+      std::vector<uint8_t> buffer(size);
+      s->read(buffer.data(), buffer.size());
 
-    if(size)
-      s->read((uint8_t*)data.data(), size);
+      res->append(buffer.data(), buffer.size());
+    }
   }
 
-  DbgTrace("Added '%s' (%d bytes)\n", req.url.c_str(), (int)data.size());
+  DbgTrace("Added '%s' (%d bytes)\n", req.url.c_str(), (int)res->size());
 
   writeLine(s, "HTTP/1.1 200 OK");
   writeLine(s, "Content-Length: 0");
