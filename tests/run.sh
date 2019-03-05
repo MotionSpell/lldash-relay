@@ -23,6 +23,12 @@ function main
     -X PUT -d "@$scriptDir/expected.txt" \
     http://$host/OmniConsumerProducts
 
+  # push trash data (HTTP-PUT) to URL2
+  curl \
+    -H "User-Agent: Robocop" \
+    -X PUT -d "NowYouSeeMe!" \
+    http://$host/OmniConsumerProducts/enemies
+
   # push data (HTTP-PUT) to URL2
   curl \
     -H "User-Agent: Robocop" \

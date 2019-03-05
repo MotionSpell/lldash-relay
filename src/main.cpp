@@ -121,6 +121,8 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
     writeLine(s, "HTTP/1.1 100 Continue");
     writeLine(s, "");
 
+    data.clear();
+
     while(1)
     {
       auto sizeLine = readLine(s);
