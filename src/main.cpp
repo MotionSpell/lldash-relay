@@ -108,14 +108,14 @@ struct Resource
   /////////////////////////////////////////////////////////////////////////////
   // producer side
   /////////////////////////////////////////////////////////////////////////////
-  void clear()
+  void resBegin()
   {
     std::unique_lock<std::mutex> lock(m_mutex);
     m_complete = false;
     m_data.clear();
   }
 
-  void append(const uint8_t* src, size_t len)
+  void resAppend(const uint8_t* src, size_t len)
   {
     std::unique_lock<std::mutex> lock(m_mutex);
     auto offset = m_data.size();
@@ -124,7 +124,7 @@ struct Resource
     m_dataAvailable.notify_all();
   }
 
-  void conclude()
+  void resEnd()
   {
     std::unique_lock<std::mutex> lock(m_mutex);
     m_complete = true;
@@ -211,7 +211,7 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
 
   auto& res = resources[req.url];
 
-  res->clear();
+  res->resBegin();
 
   if(req.headers["Transfer-Encoding"] == "chunked")
   {
@@ -236,7 +236,7 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
         std::vector<uint8_t> buffer(size);
         s->read(buffer.data(), buffer.size());
 
-        res->append(buffer.data(), buffer.size());
+        res->resAppend(buffer.data(), buffer.size());
       }
 
       uint8_t eol[2];
@@ -255,11 +255,11 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
       std::vector<uint8_t> buffer(size);
       s->read(buffer.data(), buffer.size());
 
-      res->append(buffer.data(), buffer.size());
+      res->resAppend(buffer.data(), buffer.size());
     }
   }
 
-  res->conclude();
+  res->resEnd();
 
   DbgTrace("Added '%s'\n", req.url.c_str());
 
