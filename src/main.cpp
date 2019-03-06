@@ -169,14 +169,34 @@ private:
   bool m_complete = false;
 };
 
+std::mutex g_mutex;
 std::map<std::string, std::unique_ptr<Resource>> resources;
+
+Resource* getResource(string url)
+{
+  std::unique_lock<std::mutex> lock(g_mutex);
+  auto i_res = resources.find(url);
+
+  if(i_res == resources.end())
+    return nullptr;
+
+  return i_res->second.get();
+}
+
+Resource* createResource(string url)
+{
+  std::unique_lock<std::mutex> lock(g_mutex);
+  resources[url] = make_unique<Resource>();
+  return resources[url].get();
+}
 
 void httpClientThread_GET(HttpRequest req, IStream* s)
 {
   DbgTrace("Get '%s'\n", req.url.c_str());
-  auto i_res = resources.find(req.url);
 
-  if(i_res == resources.end())
+  auto const res = getResource(req.url);
+
+  if(!res)
   {
     writeLine(s, "HTTP/1.1 404 Not Found");
     writeLine(s, "");
@@ -197,7 +217,6 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
       writeLine(s, "");
     };
 
-  auto& res = i_res->second;
   res->sendWhole(onSend);
 
   // last chunk
@@ -207,9 +226,7 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
 
 void httpClientThread_PUT(HttpRequest req, IStream* s)
 {
-  resources[req.url] = make_unique<Resource>();
-
-  auto& res = resources[req.url];
+  auto const res = createResource(req.url);
 
   res->resBegin();
 
