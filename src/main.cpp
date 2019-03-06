@@ -8,6 +8,8 @@
 #include <sstream>
 #include <memory>
 #include <vector>
+#include <mutex>
+#include <condition_variable>
 
 #include "tcp_server.h"
 
@@ -92,6 +94,10 @@ HttpRequest parseRequest(IStream* s)
   return r;
 }
 
+// A growing in-memory file, concurrently writeable and readable.
+// Read operations that go beyond the currently available data will block,
+// until more data becomes available or the end of file is signaled
+// by the producer.
 struct Resource
 {
   Resource() = default;
@@ -99,32 +105,74 @@ struct Resource
   Resource(Resource const &) = delete;
   Resource & operator = (Resource const &) = delete;
 
+  /////////////////////////////////////////////////////////////////////////////
+  // producer side
+  /////////////////////////////////////////////////////////////////////////////
   void clear()
   {
+    std::unique_lock<std::mutex> lock(m_mutex);
+    m_complete = false;
     m_data.clear();
   }
 
   void append(const uint8_t* src, size_t len)
   {
+    std::unique_lock<std::mutex> lock(m_mutex);
     auto offset = m_data.size();
     m_data.resize(offset + len);
     memcpy(&m_data[offset], src, len);
+    m_dataAvailable.notify_all();
+  }
+
+  void conclude()
+  {
+    std::unique_lock<std::mutex> lock(m_mutex);
+    m_complete = true;
   }
 
   size_t size() const
   {
+    // Don't take the mutex: this cannot be made thread-safe anyway
+    // (in a concurrent context, the returned value would always be invalid).
     return m_data.size();
   }
 
-  // sends the whole resource data to 'sendingFunc', possibly in chunks,
+  /////////////////////////////////////////////////////////////////////////////
+  // consumer side
+  /////////////////////////////////////////////////////////////////////////////
+
+  // pushes the whole resource data to 'sendingFunc', possibly in chunks,
   // and possibly blocking until the resource is completely uploaded.
   void sendWhole(std::function<void(const uint8_t* dst, size_t len)> sendingFunc)
   {
-    sendingFunc((const uint8_t*)m_data.data(), (int)m_data.size());
+    int sentBytes = 0;
+
+    while(1)
+    {
+      std::vector<uint8_t> toSend;
+
+      {
+        std::unique_lock<std::mutex> lock(m_mutex);
+
+        while(sentBytes == m_data.size() && !m_complete)
+          m_dataAvailable.wait(lock);
+
+        if(m_complete && sentBytes == m_data.size())
+          break;
+
+        toSend.assign(m_data.data() + sentBytes, m_data.data() + m_data.size());
+      }
+
+      sendingFunc((const uint8_t*)toSend.data(), (int)toSend.size());
+      sentBytes += toSend.size();
+    }
   }
 
 private:
   std::string m_data;
+  std::mutex m_mutex;
+  std::condition_variable m_dataAvailable;
+  bool m_complete = false;
 };
 
 std::map<std::string, std::unique_ptr<Resource>> resources;
@@ -216,6 +264,8 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
       res->append(buffer.data(), buffer.size());
     }
   }
+
+  res->conclude();
 
   DbgTrace("Added '%s' (%d bytes)\n", req.url.c_str(), (int)res->size());
 
