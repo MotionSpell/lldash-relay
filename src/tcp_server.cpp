@@ -29,12 +29,12 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
       {
         void write(const uint8_t* data, size_t len) override
         {
-          ::send(fd, data, len, MSG_NOSIGNAL);
+          ::send(fd, data, len, MSG_NOSIGNAL | MSG_WAITALL);
         }
 
         size_t read(uint8_t* data, size_t len) override
         {
-          return ::recv(fd, data, len, MSG_NOSIGNAL);
+          return ::recv(fd, data, len, MSG_NOSIGNAL | MSG_WAITALL);
         }
 
         int fd;
