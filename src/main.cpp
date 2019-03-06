@@ -20,7 +20,7 @@ using namespace std;
 
 struct HttpRequest
 {
-  string action; // e.g: PUT, POST, GET
+  string method; // e.g: PUT, POST, GET
   string url; // e.g: /toto/dash.mp4
   string version; // e.g: HTTP/1.1
 
@@ -65,7 +65,7 @@ HttpRequest parseRequest(IStream* s)
   string req = readLine(s);
 
   stringstream ss(req);
-  ss >> r.action;
+  ss >> r.method;
   ss >> std::ws;
   ss >> r.url;
   ss >> std::ws;
@@ -281,18 +281,21 @@ void httpClientThread(IStream* s)
 
   if(0)
   {
-    DbgTrace("[Request] '%s' '%s' '%s'\n", req.action.c_str(), req.url.c_str(), req.version.c_str());
+    DbgTrace("[Request] '%s' '%s' '%s'\n", req.method.c_str(), req.url.c_str(), req.version.c_str());
 
     for(auto& hdr : req.headers)
       DbgTrace("[Header] '%s' '%s'\n", hdr.first.c_str(), hdr.second.c_str());
   }
 
-  if(req.action == "GET")
+  if(req.method == "GET")
     httpClientThread_GET(req, s);
-  else if(req.action == "PUT" || req.action == "POST")
+  else if(req.method == "PUT" || req.method == "POST")
     httpClientThread_PUT(req, s);
   else
+  {
+    DbgTrace("Method not implemented: '%s'\n", req.method);
     httpClientThread_NotImplemented(s);
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
