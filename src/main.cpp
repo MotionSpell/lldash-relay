@@ -128,6 +128,7 @@ struct Resource
   {
     std::unique_lock<std::mutex> lock(m_mutex);
     m_complete = true;
+    m_dataAvailable.notify_all();
   }
 
   size_t size() const
