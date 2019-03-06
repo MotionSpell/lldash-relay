@@ -131,13 +131,6 @@ struct Resource
     m_dataAvailable.notify_all();
   }
 
-  size_t size() const
-  {
-    // Don't take the mutex: this cannot be made thread-safe anyway
-    // (in a concurrent context, the returned value would always be invalid).
-    return m_data.size();
-  }
-
   /////////////////////////////////////////////////////////////////////////////
   // consumer side
   /////////////////////////////////////////////////////////////////////////////
@@ -268,7 +261,7 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
 
   res->conclude();
 
-  DbgTrace("Added '%s' (%d bytes)\n", req.url.c_str(), (int)res->size());
+  DbgTrace("Added '%s'\n", req.url.c_str());
 
   writeLine(s, "HTTP/1.1 200 OK");
   writeLine(s, "Content-Length: 0");
