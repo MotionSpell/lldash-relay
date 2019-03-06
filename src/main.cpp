@@ -218,12 +218,12 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
 
   auto& res = resources[req.url];
 
+  res->clear();
+
   if(req.headers["Transfer-Encoding"] == "chunked")
   {
     writeLine(s, "HTTP/1.1 100 Continue");
     writeLine(s, "");
-
-    res->clear();
 
     while(1)
     {
