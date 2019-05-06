@@ -1,8 +1,9 @@
 BIN?=bin
 
+include $(shell $(CXX) -dumpmachine | sed "s/.*-//").mk
+
 $(BIN)/evanescent.exe: \
 	$(BIN)/src/main.cpp.o \
-	$(BIN)/src/tcp_server.cpp.o \
 
 LDFLAGS+=-pthread
 
@@ -13,7 +14,7 @@ clean:
 
 $(BIN)/%.exe:
 	@mkdir -p $(dir $@)
-	$(CXX) $(LDFLAGS) -o "$@" $^
+	$(CXX) -o "$@" $^ $(LDFLAGS)
 
 $(BIN)/%.cpp.o: %.cpp
 	@mkdir -p $(dir $@)

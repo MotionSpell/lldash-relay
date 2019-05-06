@@ -19,7 +19,8 @@ static void sigIntHandler(int)
 {
   auto socket = g_socket;
   g_socket = -1;
-  close(socket); // unblock call to 'accept' below
+  shutdown(socket, SHUT_RD); // unblock call to 'accept' below
+  close(socket);
 }
 
 void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
