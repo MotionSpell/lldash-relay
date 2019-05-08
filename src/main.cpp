@@ -318,11 +318,15 @@ void httpClientThread(IStream* s)
 ///////////////////////////////////////////////////////////////////////////////
 // main.cpp
 
-int main()
+int main(int argc, char const* argv[])
 {
   try
   {
-    runTcpServer(9000, &httpClientThread);
+    int port = 9000;
+    if (argc > 1)
+      port = atoi(argv[1]);
+
+    runTcpServer(port, &httpClientThread);
     return 0;
   }
   catch(exception const& e)
