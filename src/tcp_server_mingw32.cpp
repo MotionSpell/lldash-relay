@@ -1,7 +1,7 @@
 #include "tcp_server.h"
 
 #include <stdexcept>
-#include <cstdio> // perror
+#include <cstdio>
 #include <cstdarg>
 #include <thread>
 #include <csignal>
@@ -49,7 +49,7 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
 
   if(sock < 0)
   {
-    perror("socket");
+    fprintf(stderr, "socket() last error: %d\n", WSAGetLastError());
     throw runtime_error("can't create socket");
   }
 
@@ -64,7 +64,7 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
 
     if(ret < 0)
     {
-      perror("setsockopt");
+      fprintf(stderr, "setsockopt() last error: %d\n", WSAGetLastError());
       throw runtime_error("Can't setsockopt");
     }
   }
@@ -79,7 +79,7 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
 
     if(ret < 0)
     {
-      perror("bind");
+      fprintf(stderr, "bind() last error: %d\n", WSAGetLastError());
       throw runtime_error("Can't bind");
     }
   }
@@ -89,7 +89,7 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
 
     if(ret < 0)
     {
-      perror("listen");
+      fprintf(stderr, "listen() last error: %d\n", WSAGetLastError());
       throw runtime_error("Can't listen");
     }
   }
@@ -108,7 +108,7 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
       if(g_socket == -1)
         break; // exit thread
 
-      perror("accept");
+      fprintf(stderr, "accept() last error: %d\n", WSAGetLastError());
     }
 
     auto t = thread(clientThread, clientSocket);
