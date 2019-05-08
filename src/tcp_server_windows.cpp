@@ -75,7 +75,7 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
     serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
     serverAddress.sin_port = htons(tcpPort);
 
-    int ret = bind(sock, (struct sockaddr*)&serverAddress, sizeof serverAddress);
+    int ret = ::bind(sock, (struct sockaddr*)&serverAddress, sizeof serverAddress);
 
     if(ret < 0)
     {
