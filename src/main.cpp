@@ -310,7 +310,7 @@ void httpClientThread(IStream* s)
     httpClientThread_PUT(req, s);
   else
   {
-    DbgTrace("Method not implemented: '%s'\n", req.method);
+    DbgTrace("Method not implemented: '%s'\n", req.method.c_str());
     httpClientThread_NotImplemented(s);
   }
 }
