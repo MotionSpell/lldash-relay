@@ -12,6 +12,9 @@ readonly scriptDir=$(dirname $0)
 function main
 {
   run_test test_basic
+  run_test test_invalid_method
+
+  echo OK
 }
 
 function run_test
@@ -66,8 +69,33 @@ function test_basic
   wait $pid
 
   compare $scriptDir/expected2.txt $tmpDir/result2.txt
+}
 
-  echo OK
+function test_invalid_method
+{
+  local readonly port=15333
+  $BIN/evanescent.exe $port &
+  local readonly pid=$!
+  local readonly host="127.0.0.1:$port"
+
+  sleep 0.01
+
+  # call non-implemented method
+  exitCode=0
+  curl \
+    --fail \
+    --silent \
+    -H "User-Agent: PierreRobin" \
+    -X CRASH \
+    http://$host/OmniConsumerProducts || exitCode=$?
+
+  kill -INT $pid
+  wait $pid
+
+  if [ ! $exitCode = 22 ] ; then
+    echo "The server did not report the correct error (curl exit code: $exitCode (expected 22))" >&2
+    exit 1
+  fi
 }
 
 function compare
