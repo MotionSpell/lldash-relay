@@ -28,7 +28,13 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
       {
         void write(const uint8_t* data, size_t len) override
         {
-          ::send(fd, (const char*)data, len, MSG_WAITALL);
+          auto res = ::send(fd, (const char*)data, len, MSG_WAITALL);
+
+          if (res < 0)
+          {
+            fprintf(stderr, "send() last error: %d\n", WSAGetLastError());
+            throw runtime_error("socket error on send()");
+          }
         }
 
         size_t read(uint8_t* data, size_t len) override
@@ -120,6 +126,16 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
 
     auto t = thread(clientThread, clientSocket);
     t.detach();
+  }
+
+  {
+    int ret = WSACleanup();
+
+    if (ret < 0)
+    {
+      fprintf(stderr, "WSACleanup() last error: %d\n", WSAGetLastError());
+      throw runtime_error("Can't setsockopt");
+    }
   }
 
   DbgTrace("Server closed\n");
