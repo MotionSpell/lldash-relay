@@ -12,6 +12,7 @@ readonly scriptDir=$(dirname $0)
 function main
 {
   run_test test_basic
+  run_test test_not_found
   run_test test_invalid_method
   run_test test_invalid_port
 
@@ -70,6 +71,32 @@ function test_basic
   wait $pid
 
   compare $scriptDir/expected2.txt $tmpDir/result2.txt
+}
+
+function test_not_found
+{
+  local readonly port=15222
+  $BIN/evanescent.exe $port >/dev/null &
+  local readonly pid=$!
+  local readonly host="127.0.0.1:$port"
+
+  sleep 0.01
+
+  # call non-implemented method
+  exitCode=0
+  curl \
+    --fail \
+    --silent \
+    -X GET \
+    http://$host/IDontExist || exitCode=$?
+
+  kill -INT $pid
+  wait $pid
+
+  if [ ! $exitCode = 22 ] ; then
+    echo "The server did not report the correct error (curl exit code: $exitCode (expected 22))" >&2
+    exit 1
+  fi
 }
 
 function test_invalid_method
