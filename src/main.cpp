@@ -230,11 +230,22 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
 
   res->resBegin();
 
+  bool needsContinue = false;
+
   if(req.headers["Transfer-Encoding"] == "chunked")
+    needsContinue = true;
+
+  if(req.headers["Expect"] == "100-continue")
+    needsContinue = true;
+
+  if(needsContinue)
   {
     writeLine(s, "HTTP/1.1 100 Continue");
     writeLine(s, "");
+  }
 
+  if(req.headers["Transfer-Encoding"] == "chunked")
+  {
     while(1)
     {
       auto sizeLine = readLine(s);
