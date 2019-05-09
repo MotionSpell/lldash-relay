@@ -28,7 +28,7 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
       {
         void write(const uint8_t* data, size_t len) override
         {
-          auto res = ::send(fd, (const char*)data, len, MSG_WAITALL);
+          auto res = ::send(fd, (const char*)data, len, 0);
 
           if(res < 0)
           {
