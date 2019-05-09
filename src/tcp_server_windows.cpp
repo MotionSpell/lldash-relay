@@ -39,7 +39,15 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
 
         size_t read(uint8_t* data, size_t len) override
         {
-          return ::recv(fd, (char*)data, len, MSG_WAITALL);
+          auto res = ::recv(fd, (char*)data, len, MSG_WAITALL);
+
+          if(res < 0)
+          {
+            fprintf(stderr, "recv() error: %d\n", WSAGetLastError());
+            throw runtime_error("socket error on recv()");
+          }
+
+          return res;
         }
 
         SOCKET fd;
