@@ -46,7 +46,9 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
     };
 
   WSADATA Data;
-  if (WSAStartup(0x0202, &Data) != 0) {
+
+  if(WSAStartup(0x0202, &Data) != 0)
+  {
     throw runtime_error("can't initialize winsockets");
   }
 

@@ -323,7 +323,8 @@ int main(int argc, char const* argv[])
   try
   {
     int port = 9000;
-    if (argc > 1)
+
+    if(argc > 1)
       port = atoi(argv[1]);
 
     runTcpServer(port, &httpClientThread);
