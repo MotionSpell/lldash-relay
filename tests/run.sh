@@ -11,9 +11,21 @@ readonly scriptDir=$(dirname $0)
 
 function main
 {
-  $BIN/evanescent.exe &
+  run_test test_basic
+}
+
+function run_test
+{
+  echo "* $*"
+  "$@"
+}
+
+function test_basic
+{
+  local readonly port=18111
+  $BIN/evanescent.exe $port &
   local readonly pid=$!
-  local readonly host="127.0.0.1:9000"
+  local readonly host="127.0.0.1:$port"
 
   sleep 0.01
 
