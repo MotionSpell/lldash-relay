@@ -30,7 +30,7 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
         {
           auto res = ::send(fd, (const char*)data, len, MSG_WAITALL);
 
-          if (res < 0)
+          if(res < 0)
           {
             fprintf(stderr, "send() last error: %d\n", WSAGetLastError());
             throw runtime_error("socket error on send()");
@@ -131,7 +131,7 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
   {
     int ret = WSACleanup();
 
-    if (ret < 0)
+    if(ret < 0)
     {
       fprintf(stderr, "WSACleanup() last error: %d\n", WSAGetLastError());
       throw runtime_error("Can't setsockopt");
