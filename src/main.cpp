@@ -327,6 +327,9 @@ int main(int argc, char const* argv[])
     if(argc > 1)
       port = atoi(argv[1]);
 
+    if(port <= 0 || port >= 65536)
+      throw runtime_error("Invalid TCP port");
+
     runTcpServer(port, &httpClientThread);
     return 0;
   }

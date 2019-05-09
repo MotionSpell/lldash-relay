@@ -13,6 +13,7 @@ function main
 {
   run_test test_basic
   run_test test_invalid_method
+  run_test test_invalid_port
 
   echo OK
 }
@@ -74,7 +75,7 @@ function test_basic
 function test_invalid_method
 {
   local readonly port=15333
-  $BIN/evanescent.exe $port &
+  $BIN/evanescent.exe $port >/dev/null &
   local readonly pid=$!
   local readonly host="127.0.0.1:$port"
 
@@ -94,6 +95,14 @@ function test_invalid_method
 
   if [ ! $exitCode = 22 ] ; then
     echo "The server did not report the correct error (curl exit code: $exitCode (expected 22))" >&2
+    exit 1
+  fi
+}
+
+function test_invalid_port
+{
+  if $BIN/evanescent.exe -1 2>/dev/null ; then
+    echo "The server did not fail, although the request port is invalid" >&2
     exit 1
   fi
 }
