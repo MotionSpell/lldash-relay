@@ -62,9 +62,7 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
   WSADATA Data;
 
   if(WSAStartup(0x0202, &Data) != 0)
-  {
-    throw runtime_error("can't initialize winsockets");
-  }
+    throw runtime_error("can't initialize Winsock 2");
 
   const int sock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -136,15 +134,7 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
     t.detach();
   }
 
-  {
-    int ret = WSACleanup();
-
-    if(ret < 0)
-    {
-      fprintf(stderr, "WSACleanup() last error: %d\n", WSAGetLastError());
-      throw runtime_error("Can't setsockopt");
-    }
-  }
+  WSACleanup();
 
   DbgTrace("Server closed\n");
 }
