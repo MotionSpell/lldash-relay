@@ -34,7 +34,7 @@ struct BioAdapter
 
   static long staticCtrl(BIO*, int cmd, long, void*)
   {
-    switch (cmd)
+    switch(cmd)
     {
     case BIO_CTRL_FLUSH:
       return 1;
