@@ -332,9 +332,35 @@ void httpClientThread(IStream* s)
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-struct TlsStream : IStream
+// Allows OpenSSL to talk to a IStream
+struct BioAdapter
 {
   IStream* tcpStream {};
+
+  // SSL wants to read data
+  static int staticRead(BIO* bio, char* buf, int size)
+  {
+    auto pThis = (BioAdapter*)BIO_get_data(bio);
+    return pThis->tcpStream->read((uint8_t*)buf, size);
+  }
+
+  // SSL wants to write data
+  static int staticWrite(BIO* bio, const char* buf, int size)
+  {
+    auto pThis = (BioAdapter*)BIO_get_data(bio);
+    pThis->tcpStream->write((const uint8_t*)buf, size);
+    return size;
+  }
+
+  static long staticCtrl(BIO*, int, long, void*)
+  {
+    return 0;
+  }
+};
+
+// Allows IStream users to talk to OpenSSL
+struct StreamAdapter : IStream
+{
   SSL* sslStream;
 
   // HTTP wants to write data
@@ -346,26 +372,6 @@ struct TlsStream : IStream
   size_t read(uint8_t* data, size_t len) override
   {
     return SSL_read(sslStream, data, len);
-  }
-
-  // SSL wants to read data
-  static int staticRead(BIO* bio, char* buf, int size)
-  {
-    auto pThis = (TlsStream*)BIO_get_data(bio);
-    return pThis->tcpStream->read((uint8_t*)buf, size);
-  }
-
-  // SSL wants to write data
-  static int staticWrite(BIO* bio, const char* buf, int size)
-  {
-    auto pThis = (TlsStream*)BIO_get_data(bio);
-    pThis->tcpStream->write((const uint8_t*)buf, size);
-    return size;
-  }
-
-  static long staticCtrl(BIO*, int, long, void*)
-  {
-    return 0;
   }
 };
 
@@ -404,9 +410,9 @@ void httpTlsClientThread(IStream* tcpStream)
     throw runtime_error("TLS: can't create custom BIO method");
   }
 
-  BIO_meth_set_read(biom, &TlsStream::staticRead);
-  BIO_meth_set_write(biom, &TlsStream::staticWrite);
-  BIO_meth_set_ctrl(biom, &TlsStream::staticCtrl);
+  BIO_meth_set_read(biom, &BioAdapter::staticRead);
+  BIO_meth_set_write(biom, &BioAdapter::staticWrite);
+  BIO_meth_set_ctrl(biom, &BioAdapter::staticCtrl);
 
   auto bio = BIO_new(biom);
 
@@ -416,11 +422,13 @@ void httpTlsClientThread(IStream* tcpStream)
     throw runtime_error("TLS: can't create new BIO");
   }
 
-  TlsStream stream;
-  stream.sslStream = ssl;
-  stream.tcpStream = tcpStream;
+  StreamAdapter streamAdapter {};
+  streamAdapter.sslStream = ssl;
 
-  BIO_set_data(bio, &stream);
+  BioAdapter bioAdapter {};
+  bioAdapter.tcpStream = tcpStream;
+
+  BIO_set_data(bio, &bioAdapter);
 
   SSL_set_bio(ssl, bio, bio);
 
@@ -430,7 +438,7 @@ void httpTlsClientThread(IStream* tcpStream)
     throw runtime_error("TLS: can't accept connection");
   }
 
-  httpClientThread(&stream);
+  httpClientThread(&streamAdapter);
 
   BIO_meth_free(biom);
 
