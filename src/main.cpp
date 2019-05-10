@@ -373,7 +373,22 @@ int main(int argc, char const* argv[])
   try
   {
     auto cfg = parseCommandLine(argc, argv);
-    runTcpServer(cfg.port, &httpClientThread);
+
+    auto clientFunction = &httpClientThread;
+
+    auto clientFunctionCatcher = [&] (IStream* stream)
+      {
+        try
+        {
+          clientFunction(stream);
+        }
+        catch(std::exception const& e)
+        {
+          fprintf(stderr, "Error: %s\n", e.what());
+        }
+      };
+
+    runTcpServer(cfg.port, clientFunctionCatcher);
     return 0;
   }
   catch(exception const& e)
