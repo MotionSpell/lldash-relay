@@ -12,6 +12,7 @@ readonly scriptDir=$(dirname $0)
 function main
 {
   run_test test_basic
+  #run_test test_tls
   run_test test_not_found
   run_test test_invalid_method
   run_test test_invalid_port
@@ -164,6 +165,22 @@ function test_invalid_port
     echo "The server did not fail, although the request port is invalid" >&2
     exit 1
   fi
+}
+
+function test_tls
+{
+  $BIN/evanescent.exe --tls &
+  local readonly pid=$!
+  local readonly host="127.0.0.1:9000"
+
+  sleep 0.1
+  curl --Silent -k -X PUT --data-binary "@$scriptDir/expected.txt" https://$host/yo.dat
+  curl --Silent -k https://$host/yo.dat > $tmpDir/result.txt
+
+  kill -INT $pid
+  wait $pid
+
+  compare $scriptDir/expected.txt $tmpDir/result.txt
 }
 
 function compare
