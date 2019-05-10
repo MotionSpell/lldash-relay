@@ -32,9 +32,16 @@ struct BioAdapter
     return size;
   }
 
-  static long staticCtrl(BIO*, int, long, void*)
+  static long staticCtrl(BIO*, int cmd, long, void*)
   {
-    return 0;
+    switch (cmd)
+    {
+    case BIO_CTRL_FLUSH:
+      return 1;
+
+    default:
+      return 0;
+    }
   }
 };
 
@@ -117,9 +124,9 @@ void httpTlsClientThread(IStream* tcpStream)
   if(ret <= 0)
   {
     ERR_print_errors_fp(stderr);
-    fprintf(stderr, "SSL_accept failed: %d '%s'\n",
+    fprintf(stderr, "SSL_accept failed: %d '%d'\n",
             ret,
-            ERR_reason_error_string(SSL_get_error(ssl.get(), ret))
+            (SSL_get_error(ssl.get(), ret))
             );
 
     throw runtime_error("TLS: can't accept connection");
