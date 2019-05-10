@@ -29,7 +29,7 @@ function run_test
 function test_basic
 {
   local readonly port=18111
-  $BIN/evanescent.exe $port &
+  $BIN/evanescent.exe --port $port &
   local readonly pid=$!
   local readonly host="127.0.0.1:$port"
 
@@ -77,7 +77,7 @@ function test_basic
 function test_big_file
 {
   local readonly port=18111
-  $BIN/evanescent.exe $port &
+  $BIN/evanescent.exe --port $port &
   local readonly pid=$!
   local readonly host="127.0.0.1:$port"
 
@@ -108,7 +108,7 @@ function test_big_file
 function test_not_found
 {
   local readonly port=15222
-  $BIN/evanescent.exe $port >/dev/null &
+  $BIN/evanescent.exe --port $port >/dev/null &
   local readonly pid=$!
   local readonly host="127.0.0.1:$port"
 
@@ -134,7 +134,7 @@ function test_not_found
 function test_invalid_method
 {
   local readonly port=15333
-  $BIN/evanescent.exe $port >/dev/null &
+  $BIN/evanescent.exe --port $port >/dev/null &
   local readonly pid=$!
   local readonly host="127.0.0.1:$port"
 

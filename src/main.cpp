@@ -329,19 +329,51 @@ void httpClientThread(IStream* s)
 ///////////////////////////////////////////////////////////////////////////////
 // main.cpp
 
+struct Config
+{
+  int port = 9000;
+};
+
+Config parseCommandLine(int argc, char const* argv[])
+{
+  Config cfg {};
+
+  auto pop = [&] () -> string
+    {
+      if(argc <= 0)
+        throw runtime_error("unexpected end of command line");
+
+      string word = argv[0];
+      argc--;
+      argv++;
+
+      return word;
+    };
+
+  pop();
+
+  while(argc > 0)
+  {
+    auto word = pop();
+
+    if(word == "--port")
+      cfg.port = atoi(pop().c_str());
+    else
+      throw runtime_error("invalid command line");
+  }
+
+  if(cfg.port <= 0 || cfg.port >= 65536)
+    throw runtime_error("Invalid TCP port");
+
+  return cfg;
+}
+
 int main(int argc, char const* argv[])
 {
   try
   {
-    int port = 9000;
-
-    if(argc > 1)
-      port = atoi(argv[1]);
-
-    if(port <= 0 || port >= 65536)
-      throw runtime_error("Invalid TCP port");
-
-    runTcpServer(port, &httpClientThread);
+    auto cfg = parseCommandLine(argc, argv);
+    runTcpServer(cfg.port, &httpClientThread);
     return 0;
   }
   catch(exception const& e)
