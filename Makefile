@@ -4,6 +4,7 @@ include $(shell $(CXX) -dumpmachine | sed "s/.*-//").mk
 
 $(BIN)/evanescent.exe: \
 	$(BIN)/src/main.cpp.o \
+	$(BIN)/src/tls.cpp.o \
 
 PKGS+=openssl
 
