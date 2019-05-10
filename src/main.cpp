@@ -327,11 +327,124 @@ void httpClientThread(IStream* s)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// TLS wrapper: adds encryption layer, and forwards to httpClientThread (above)
+
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
+struct TlsStream : IStream
+{
+  IStream* tcpStream {};
+  SSL* sslStream;
+
+  // HTTP wants to write data
+  void write(const uint8_t* data, size_t len) override
+  {
+    SSL_write(sslStream, data, len);
+  }
+
+  size_t read(uint8_t* data, size_t len) override
+  {
+    return SSL_read(sslStream, data, len);
+  }
+
+  // SSL wants to read data
+  static int staticRead(BIO* bio, char* buf, int size)
+  {
+    auto pThis = (TlsStream*)BIO_get_data(bio);
+    return pThis->tcpStream->read((uint8_t*)buf, size);
+  }
+
+  // SSL wants to write data
+  static int staticWrite(BIO* bio, const char* buf, int size)
+  {
+    auto pThis = (TlsStream*)BIO_get_data(bio);
+    pThis->tcpStream->write((const uint8_t*)buf, size);
+    return size;
+  }
+
+  static long staticCtrl(BIO*, int, long, void*)
+  {
+    return 0;
+  }
+};
+
+void httpTlsClientThread(IStream* tcpStream)
+{
+  SSL_CTX* ctx = SSL_CTX_new(SSLv23_server_method());
+
+  if(!ctx)
+  {
+    perror("Unable to create SSL context");
+    throw runtime_error("Unable to create SSL context");
+  }
+
+  SSL_CTX_set_ecdh_auto(ctx, 1);
+
+  // Set certification
+  if(SSL_CTX_use_certificate_file(ctx, "cert.pem", SSL_FILETYPE_PEM) <= 0)
+  {
+    ERR_print_errors_fp(stderr);
+    throw runtime_error("TLS: can't load certificate 'cert.pem'");
+  }
+
+  // Set private key
+  if(SSL_CTX_use_PrivateKey_file(ctx, "key.pem", SSL_FILETYPE_PEM) <= 0)
+  {
+    ERR_print_errors_fp(stderr);
+    throw runtime_error("TLS: can't load private key 'key.pem'");
+  }
+
+  SSL* ssl = SSL_new(ctx);
+  BIO_METHOD* biom = BIO_meth_new(1234, "MyStream");
+
+  if(!biom)
+  {
+    ERR_print_errors_fp(stderr);
+    throw runtime_error("TLS: can't create custom BIO method");
+  }
+
+  BIO_meth_set_read(biom, &TlsStream::staticRead);
+  BIO_meth_set_write(biom, &TlsStream::staticWrite);
+  BIO_meth_set_ctrl(biom, &TlsStream::staticCtrl);
+
+  auto bio = BIO_new(biom);
+
+  if(!biom)
+  {
+    ERR_print_errors_fp(stderr);
+    throw runtime_error("TLS: can't create new BIO");
+  }
+
+  TlsStream stream;
+  stream.sslStream = ssl;
+  stream.tcpStream = tcpStream;
+
+  BIO_set_data(bio, &stream);
+
+  SSL_set_bio(ssl, bio, bio);
+
+  if(SSL_accept(ssl) <= 0)
+  {
+    ERR_print_errors_fp(stderr);
+    throw runtime_error("TLS: can't accept connection");
+  }
+
+  httpClientThread(&stream);
+
+  BIO_meth_free(biom);
+
+  SSL_free(ssl);
+  SSL_CTX_free(ctx);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // main.cpp
 
 struct Config
 {
   int port = 9000;
+  bool tls = false;
 };
 
 Config parseCommandLine(int argc, char const* argv[])
@@ -358,6 +471,8 @@ Config parseCommandLine(int argc, char const* argv[])
 
     if(word == "--port")
       cfg.port = atoi(pop().c_str());
+    else if(word == "--tls")
+      cfg.tls = true;
     else
       throw runtime_error("invalid command line");
   }
@@ -375,6 +490,9 @@ int main(int argc, char const* argv[])
     auto cfg = parseCommandLine(argc, argv);
 
     auto clientFunction = &httpClientThread;
+
+    if(cfg.tls)
+      clientFunction = &httpTlsClientThread;
 
     auto clientFunctionCatcher = [&] (IStream* stream)
       {

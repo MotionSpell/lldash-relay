@@ -5,6 +5,10 @@ include $(shell $(CXX) -dumpmachine | sed "s/.*-//").mk
 $(BIN)/evanescent.exe: \
 	$(BIN)/src/main.cpp.o \
 
+PKGS+=openssl
+
+CXXFLAGS+=$(shell pkg-config $(PKGS) --cflags)
+LDFLAGS+=$(shell pkg-config $(PKGS) --libs)
 LDFLAGS+=-pthread
 
 #------------------------------------------------------------------------------
