@@ -377,7 +377,7 @@ struct StreamAdapter : IStream
 
 void httpTlsClientThread(IStream* tcpStream)
 {
-  SSL_CTX* ctx = SSL_CTX_new(SSLv23_server_method());
+  auto ctx = std::shared_ptr<SSL_CTX>(SSL_CTX_new(SSLv23_server_method()), &SSL_CTX_free);
 
   if(!ctx)
   {
@@ -385,24 +385,24 @@ void httpTlsClientThread(IStream* tcpStream)
     throw runtime_error("Unable to create SSL context");
   }
 
-  SSL_CTX_set_ecdh_auto(ctx, 1);
+  SSL_CTX_set_ecdh_auto(ctx.get(), 1);
 
   // Set certification
-  if(SSL_CTX_use_certificate_file(ctx, "cert.pem", SSL_FILETYPE_PEM) <= 0)
+  if(SSL_CTX_use_certificate_file(ctx.get(), "cert.pem", SSL_FILETYPE_PEM) <= 0)
   {
     ERR_print_errors_fp(stderr);
     throw runtime_error("TLS: can't load certificate 'cert.pem'");
   }
 
   // Set private key
-  if(SSL_CTX_use_PrivateKey_file(ctx, "key.pem", SSL_FILETYPE_PEM) <= 0)
+  if(SSL_CTX_use_PrivateKey_file(ctx.get(), "key.pem", SSL_FILETYPE_PEM) <= 0)
   {
     ERR_print_errors_fp(stderr);
     throw runtime_error("TLS: can't load private key 'key.pem'");
   }
 
-  SSL* ssl = SSL_new(ctx);
-  BIO_METHOD* biom = BIO_meth_new(1234, "MyStream");
+  auto ssl = std::shared_ptr<SSL>(SSL_new(ctx.get()), &SSL_free);
+  auto biom = std::shared_ptr<BIO_METHOD>(BIO_meth_new(1234, "MyStream"), &BIO_meth_free);
 
   if(!biom)
   {
@@ -410,40 +410,35 @@ void httpTlsClientThread(IStream* tcpStream)
     throw runtime_error("TLS: can't create custom BIO method");
   }
 
-  BIO_meth_set_read(biom, &BioAdapter::staticRead);
-  BIO_meth_set_write(biom, &BioAdapter::staticWrite);
-  BIO_meth_set_ctrl(biom, &BioAdapter::staticCtrl);
+  BIO_meth_set_read(biom.get(), &BioAdapter::staticRead);
+  BIO_meth_set_write(biom.get(), &BioAdapter::staticWrite);
+  BIO_meth_set_ctrl(biom.get(), &BioAdapter::staticCtrl);
 
-  auto bio = BIO_new(biom);
+  auto bio = BIO_new(biom.get());
 
-  if(!biom)
+  if(!bio)
   {
     ERR_print_errors_fp(stderr);
     throw runtime_error("TLS: can't create new BIO");
   }
 
   StreamAdapter streamAdapter {};
-  streamAdapter.sslStream = ssl;
+  streamAdapter.sslStream = ssl.get();
 
   BioAdapter bioAdapter {};
   bioAdapter.tcpStream = tcpStream;
 
   BIO_set_data(bio, &bioAdapter);
 
-  SSL_set_bio(ssl, bio, bio);
+  SSL_set_bio(ssl.get(), bio, bio);
 
-  if(SSL_accept(ssl) <= 0)
+  if(SSL_accept(ssl.get()) <= 0)
   {
     ERR_print_errors_fp(stderr);
     throw runtime_error("TLS: can't accept connection");
   }
 
   httpClientThread(&streamAdapter);
-
-  BIO_meth_free(biom);
-
-  SSL_free(ssl);
-  SSL_CTX_free(ctx);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
