@@ -15,6 +15,7 @@ function main
   run_test test_not_found
   run_test test_invalid_method
   run_test test_invalid_port
+  run_test test_big_file
 
   echo OK
 }
@@ -71,6 +72,37 @@ function test_basic
   wait $pid
 
   compare $scriptDir/expected2.txt $tmpDir/result2.txt
+}
+
+function test_big_file
+{
+  local readonly port=18111
+  $BIN/evanescent.exe $port &
+  local readonly pid=$!
+  local readonly host="127.0.0.1:$port"
+
+  # Generate big file (approx 6Mb)
+  seq 1000000 > $tmpDir/big_file_ref.txt
+
+  sleep 0.01
+
+  curl \
+    --silent \
+    -H "Transfer-Encoding: chunked" \
+    -H "Expect: 100-continue" \
+    -X PUT \
+    -d "@$scriptDir/big_file_ref.txt" \
+    http://$host/ThisIsABigFile
+
+  curl \
+    --silent \
+    -X GET \
+    http://$host/ThisIsABigFile > $tmpDir/big_file_new.txt
+
+  kill -INT $pid
+  wait $pid
+
+  compare $scriptDir/big_file_ref.txt $tmpDir/big_file_new.txt
 }
 
 function test_not_found
