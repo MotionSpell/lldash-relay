@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// TLS wrapper: adds encryption layer, and forwards to httpClientThread (above)
+// TLS wrapper: adds encryption layer, and forwards to httpMain (above)
 
 #include "tcp_server.h" // IStream
 #include <memory>
@@ -10,7 +10,7 @@
 
 using namespace std;
 
-extern void httpClientThread(IStream* s);
+extern void httpMain(IStream* s);
 
 // Allows OpenSSL to talk to a IStream
 struct BioAdapter
@@ -62,7 +62,7 @@ struct StreamAdapter : IStream
   }
 };
 
-void httpTlsClientThread(IStream* tcpStream)
+void tlsMain(IStream* tcpStream)
 {
   auto ctx = std::shared_ptr<SSL_CTX>(SSL_CTX_new(SSLv23_server_method()), &SSL_CTX_free);
 
@@ -132,6 +132,6 @@ void httpTlsClientThread(IStream* tcpStream)
     throw runtime_error("TLS: can't accept connection");
   }
 
-  httpClientThread(&streamAdapter);
+  httpMain(&streamAdapter);
 }
 

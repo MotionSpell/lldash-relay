@@ -303,7 +303,7 @@ void httpClientThread_NotImplemented(IStream* s)
   writeLine(s, "");
 }
 
-void httpClientThread(IStream* s)
+void httpMain(IStream* s)
 {
   auto req = parseRequest(s);
 
@@ -329,7 +329,7 @@ void httpClientThread(IStream* s)
 ///////////////////////////////////////////////////////////////////////////////
 // main.cpp
 
-extern void httpTlsClientThread(IStream* tcpStream);
+extern void tlsMain(IStream* tcpStream);
 
 struct Config
 {
@@ -379,10 +379,10 @@ int main(int argc, char const* argv[])
   {
     auto cfg = parseCommandLine(argc, argv);
 
-    auto clientFunction = &httpClientThread;
+    auto clientFunction = &httpMain;
 
     if(cfg.tls)
-      clientFunction = &httpTlsClientThread;
+      clientFunction = &tlsMain;
 
     auto clientFunctionCatcher = [&] (IStream* stream)
       {
