@@ -64,7 +64,7 @@ struct StreamAdapter : IStream
 
 void tlsMain(IStream* tcpStream)
 {
-  auto ctx = std::shared_ptr<SSL_CTX>(SSL_CTX_new(SSLv23_server_method()), &SSL_CTX_free);
+  auto ctx = std::shared_ptr<SSL_CTX>(SSL_CTX_new(TLS_server_method()), &SSL_CTX_free);
 
   if(!ctx)
   {
