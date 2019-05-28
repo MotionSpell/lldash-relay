@@ -12,7 +12,7 @@ readonly scriptDir=$(dirname $0)
 function main
 {
   run_test test_basic
-  #run_test test_tls
+  run_test test_tls
   run_test test_not_found
   run_test test_invalid_method
   run_test test_invalid_port
