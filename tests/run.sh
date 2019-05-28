@@ -12,6 +12,7 @@ readonly scriptDir=$(dirname $0)
 function main
 {
   run_test test_basic
+  run_test test_delete
   run_test test_tls
   run_test test_not_found
   run_test test_invalid_method
@@ -23,7 +24,7 @@ function main
 
 function run_test
 {
-  echo "* $*"
+  echo "---------------- $* ----------------"
   "$@"
 }
 
@@ -73,6 +74,32 @@ function test_basic
   wait $pid
 
   compare $scriptDir/expected2.txt $tmpDir/result2.txt
+}
+
+function test_delete
+{
+  local readonly port=18111
+  $BIN/evanescent.exe --port $port &
+  local readonly pid=$!
+  local readonly host="127.0.0.1:$port"
+
+  sleep 0.01
+
+  # push data (HTTP-PUT) to URL
+  curl -X PUT http://$host/DeleteMe \
+    -d "@$scriptDir/expected.txt"
+
+  # delete it
+  curl -X DELETE http://$host/DeleteMe
+
+  # get data back (HTTP-GET) from URL: should fail
+  if curl --fail --silent -X GET http://$host/DeleteMe >/dev/null ; then
+    echo "Resource was not deleted!" >&2
+    return 1
+  fi
+
+  kill -INT $pid
+  wait $pid
 }
 
 function test_big_file

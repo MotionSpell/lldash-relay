@@ -183,6 +183,18 @@ Resource* getResource(string url)
   return i_res->second.get();
 }
 
+bool deleteResource(string url)
+{
+  std::unique_lock<std::mutex> lock(g_mutex);
+  auto i_res = resources.find(url);
+
+  if(i_res == resources.end())
+    return false;
+
+  resources.erase(i_res);
+  return true;
+}
+
 Resource* createResource(string url)
 {
   std::unique_lock<std::mutex> lock(g_mutex);
@@ -221,6 +233,23 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
 
   // last chunk
   writeLine(s, "0");
+  writeLine(s, "");
+}
+
+void httpClientThread_DELETE(HttpRequest req, IStream* s)
+{
+  DbgTrace("Delete '%s'\n", req.url.c_str());
+
+  auto const res = deleteResource(req.url);
+
+  if(!res)
+  {
+    writeLine(s, "HTTP/1.1 404 Not Found");
+    writeLine(s, "");
+    return;
+  }
+
+  writeLine(s, "HTTP/1.1 200 OK");
   writeLine(s, "");
 }
 
@@ -317,6 +346,8 @@ void httpMain(IStream* s)
 
   if(req.method == "GET")
     httpClientThread_GET(req, s);
+  else if(req.method == "DELETE")
+    httpClientThread_DELETE(req, s);
   else if(req.method == "PUT" || req.method == "POST")
     httpClientThread_PUT(req, s);
   else
