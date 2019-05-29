@@ -23,40 +23,44 @@ static void sigIntHandler(int)
 
 void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
 {
-  auto clientThread = [clientFunc] (int clientSocket) {
-      struct FileStream : IStream
+  struct SocketStream : IStream
+  {
+    void write(const uint8_t* data, size_t len) override
+    {
+      auto res = ::send(fd, (const char*)data, len, 0);
+
+      if(res < 0)
       {
-        void write(const uint8_t* data, size_t len) override
-        {
-          auto res = ::send(fd, (const char*)data, len, 0);
+        fprintf(stderr, "send() last error: %d\n", WSAGetLastError());
+        throw runtime_error("socket error on send()");
+      }
+    }
 
-          if(res < 0)
-          {
-            fprintf(stderr, "send() last error: %d\n", WSAGetLastError());
-            throw runtime_error("socket error on send()");
-          }
-        }
+    size_t read(uint8_t* data, size_t len) override
+    {
+      auto res = ::recv(fd, (char*)data, len, MSG_WAITALL);
 
-        size_t read(uint8_t* data, size_t len) override
-        {
-          auto res = ::recv(fd, (char*)data, len, MSG_WAITALL);
+      if(res < 0)
+      {
+        fprintf(stderr, "recv() error: %d\n", WSAGetLastError());
+        throw runtime_error("socket error on recv()");
+      }
 
-          if(res < 0)
-          {
-            fprintf(stderr, "recv() error: %d\n", WSAGetLastError());
-            throw runtime_error("socket error on recv()");
-          }
+      return res;
+    }
 
-          return res;
-        }
+    ~SocketStream()
+    {
+      closesocket(clientSocket);
+    }
 
-        SOCKET fd;
-      };
+    SOCKET fd;
+  };
 
-      FileStream s;
+  auto clientThread = [clientFunc] (int clientSocket) {
+      SocketStream s;
       s.fd = clientSocket;
       clientFunc(&s);
-      closesocket(clientSocket);
     };
 
   WSADATA Data;

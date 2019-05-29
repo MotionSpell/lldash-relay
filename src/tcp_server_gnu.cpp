@@ -25,26 +25,30 @@ static void sigIntHandler(int)
 
 void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
 {
+  struct SocketStream : IStream
+  {
+    void write(const uint8_t* data, size_t len) override
+    {
+      ::send(fd, data, len, MSG_NOSIGNAL | MSG_WAITALL);
+    }
+
+    size_t read(uint8_t* data, size_t len) override
+    {
+      return ::recv(fd, data, len, MSG_NOSIGNAL | MSG_WAITALL);
+    }
+
+    ~SocketStream()
+    {
+      close(fd);
+    }
+
+    int fd;
+  };
+
   auto clientThread = [clientFunc] (int clientSocket) {
-      struct FileStream : IStream
-      {
-        void write(const uint8_t* data, size_t len) override
-        {
-          ::send(fd, data, len, MSG_NOSIGNAL | MSG_WAITALL);
-        }
-
-        size_t read(uint8_t* data, size_t len) override
-        {
-          return ::recv(fd, data, len, MSG_NOSIGNAL | MSG_WAITALL);
-        }
-
-        int fd;
-      };
-
-      FileStream s;
+      SocketStream s;
       s.fd = clientSocket;
       clientFunc(&s);
-      close(clientSocket);
     };
 
   const int sock = socket(AF_INET, SOCK_STREAM, 0);
