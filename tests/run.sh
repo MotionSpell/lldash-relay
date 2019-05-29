@@ -204,6 +204,16 @@ function test_tls
   curl --Silent -k -X PUT --data-binary "@$scriptDir/expected.txt" https://$host/yo.dat
   curl --Silent -k https://$host/yo.dat > $tmpDir/result.txt
 
+  # generate medium file, and push it
+  seq 100000 > $tmpDir/medium_file.txt
+  curl --Silent --fail --insecure -X PUT --data-binary "@$tmpDir/medium_file.txt" https://$host/medium.dat
+  curl --Silent --fail --insecure -X GET https://$host/medium.dat >$tmpDir/medium_file_get.txt
+
+  if ! diff $tmpDir/medium_file.txt $tmpDir/medium_file_get.txt ; then
+    echo "Truncated file" >&2
+    exit 1
+  fi
+
   kill -INT $pid
   wait $pid
 

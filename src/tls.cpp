@@ -58,12 +58,37 @@ struct StreamAdapter : IStream
   // HTTP wants to write data
   void write(const uint8_t* data, size_t len) override
   {
-    SSL_write(sslStream, data, len);
+    auto remaining = (int)len;
+
+    while(remaining > 0)
+    {
+      auto writtenBytes = SSL_write(sslStream, data, remaining);
+
+      if(writtenBytes < 0)
+        throw runtime_error("SSL write error");
+
+      remaining -= writtenBytes;
+      data += writtenBytes;
+    }
   }
 
+  // HTTP wants to read data
   size_t read(uint8_t* data, size_t len) override
   {
-    return SSL_read(sslStream, data, len);
+    auto remaining = (int)len;
+
+    while(remaining > 0)
+    {
+      auto readBytes = SSL_read(sslStream, data, remaining);
+
+      if(readBytes < 0)
+        throw runtime_error("SSL read error");
+
+      remaining -= readBytes;
+      data += readBytes;
+    }
+
+    return len;
   }
 };
 
