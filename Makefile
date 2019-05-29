@@ -8,6 +8,8 @@ $(BIN)/evanescent.exe: \
 
 PKGS+=openssl
 
+CXXFLAGS+=-Os
+
 CXXFLAGS+=$(shell pkg-config $(PKGS) --cflags)
 LDFLAGS+=$(shell pkg-config $(PKGS) --libs)
 LDFLAGS+=-pthread
