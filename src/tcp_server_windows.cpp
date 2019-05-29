@@ -21,10 +21,19 @@ static void sigIntHandler(int)
   closesocket(socket); // unblock call to 'accept' below
 }
 
-void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
+void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> clientFunc)
 {
   struct SocketStream : IStream
   {
+    SocketStream(SOCKET fd_) : fd(fd_)
+    {
+    }
+
+    ~SocketStream()
+    {
+      closesocket(fd);
+    }
+
     void write(const uint8_t* data, size_t len) override
     {
       auto res = ::send(fd, (const char*)data, len, 0);
@@ -49,18 +58,12 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
       return res;
     }
 
-    ~SocketStream()
-    {
-      closesocket(clientSocket);
-    }
-
-    SOCKET fd;
+    const SOCKET fd;
   };
 
   auto clientThread = [clientFunc] (int clientSocket) {
-      SocketStream s;
-      s.fd = clientSocket;
-      clientFunc(&s);
+      auto s = make_unique<SocketStream>(clientSocket);
+      clientFunc(move(s));
     };
 
   WSADATA Data;

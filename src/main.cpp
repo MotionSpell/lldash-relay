@@ -415,11 +415,11 @@ int main(int argc, char const* argv[])
     if(cfg.tls)
       clientFunction = &tlsMain;
 
-    auto clientFunctionCatcher = [&] (IStream* stream)
+    auto clientFunctionCatcher = [&] (std::unique_ptr<IStream> stream)
       {
         try
         {
-          clientFunction(stream);
+          clientFunction(stream.get());
         }
         catch(std::exception const& e)
         {

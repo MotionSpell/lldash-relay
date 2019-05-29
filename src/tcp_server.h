@@ -3,6 +3,7 @@
 #include <cstddef> // size_t
 #include <cstdint>
 #include <functional>
+#include <memory>
 
 struct IStream
 {
@@ -11,7 +12,7 @@ struct IStream
   virtual size_t read(uint8_t* data, size_t len) = 0;
 };
 
-void runTcpServer(int tcpPort, std::function<void(IStream* s)> clientFunc);
+void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> clientFunc);
 
 void DbgTrace(const char* format, ...);
 

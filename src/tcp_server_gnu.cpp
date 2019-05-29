@@ -23,10 +23,19 @@ static void sigIntHandler(int)
   close(socket);
 }
 
-void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
+void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> clientFunc)
 {
   struct SocketStream : IStream
   {
+    SocketStream(int fd_) : fd(fd_)
+    {
+    }
+
+    ~SocketStream()
+    {
+      close(fd);
+    }
+
     void write(const uint8_t* data, size_t len) override
     {
       ::send(fd, data, len, MSG_NOSIGNAL | MSG_WAITALL);
@@ -37,18 +46,12 @@ void runTcpServer(int tcpPort, function<void(IStream*)> clientFunc)
       return ::recv(fd, data, len, MSG_NOSIGNAL | MSG_WAITALL);
     }
 
-    ~SocketStream()
-    {
-      close(fd);
-    }
-
-    int fd;
+    const int fd;
   };
 
   auto clientThread = [clientFunc] (int clientSocket) {
-      SocketStream s;
-      s.fd = clientSocket;
-      clientFunc(&s);
+      auto s = make_unique<SocketStream>(clientSocket);
+      clientFunc(move(s));
     };
 
   const int sock = socket(AF_INET, SOCK_STREAM, 0);
