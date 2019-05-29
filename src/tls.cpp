@@ -39,7 +39,12 @@ struct BioAdapter
     case BIO_CTRL_FLUSH:
       return 1;
 
+    case BIO_CTRL_PUSH:
+    case BIO_CTRL_POP:
+      return -1;
+
     default:
+      fprintf(stderr, "BioAdapter: unhandled BIO_CTRL: %d\n", cmd);
       return 0;
     }
   }
