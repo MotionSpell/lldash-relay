@@ -121,6 +121,7 @@ void tlsMain(IStream* tcpStream)
   bioAdapter.tcpStream = tcpStream;
 
   BIO_set_data(bio, &bioAdapter);
+  BIO_set_init(bio, 1);
 
   SSL_set_bio(ssl.get(), bio, bio);
 
