@@ -21,6 +21,17 @@ $ make -j $(nproc)
 $ sudo make install
 ```
 
+# Running
+
+Usage examples:
+
+```sh
+$ evanescent --port 10333
+$ evanescent --tls --port 10777
+$ evanescent --tls
+
+```
+
 # Building
 
 ## Native build
