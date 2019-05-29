@@ -170,9 +170,9 @@ private:
 };
 
 std::mutex g_mutex;
-std::map<std::string, std::unique_ptr<Resource>> resources;
+std::map<std::string, std::shared_ptr<Resource>> resources;
 
-Resource* getResource(string url)
+std::shared_ptr<Resource> getResource(string url)
 {
   std::unique_lock<std::mutex> lock(g_mutex);
   auto i_res = resources.find(url);
@@ -180,7 +180,7 @@ Resource* getResource(string url)
   if(i_res == resources.end())
     return nullptr;
 
-  return i_res->second.get();
+  return i_res->second;
 }
 
 bool deleteResource(string url)
@@ -195,11 +195,11 @@ bool deleteResource(string url)
   return true;
 }
 
-Resource* createResource(string url)
+std::shared_ptr<Resource> createResource(string url)
 {
   std::unique_lock<std::mutex> lock(g_mutex);
-  resources[url] = make_unique<Resource>();
-  return resources[url].get();
+  resources[url] = make_shared<Resource>();
+  return resources[url];
 }
 
 void httpClientThread_GET(HttpRequest req, IStream* s)
