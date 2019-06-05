@@ -410,6 +410,12 @@ int main(int argc, char const* argv[])
   {
     auto cfg = parseCommandLine(argc, argv);
 
+#ifndef VERSION
+#define VERSION "0"
+#endif
+
+    printf("Evanescent version: %s\n", VERSION);
+
     auto clientFunction = &httpMain;
 
     if(cfg.tls)

@@ -10,6 +10,10 @@ PKGS+=openssl
 
 CXXFLAGS+=-Os
 
+ifneq ($(VERSION),)
+CXXFLAGS+=-DVERSION=\"$(VERSION)\"
+endif
+
 CXXFLAGS+=$(shell pkg-config $(PKGS) --cflags)
 LDFLAGS+=$(shell pkg-config $(PKGS) --libs)
 LDFLAGS+=-pthread
