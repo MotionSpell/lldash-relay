@@ -5,6 +5,7 @@
 #include <cstdarg>
 #include <thread>
 #include <csignal>
+#include <mutex>
 
 using namespace std;
 
@@ -146,8 +147,11 @@ void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> c
   DbgTrace("Server closed\n");
 }
 
+static std::mutex g_debugTraceMutex;
+
 void DbgTrace(const char* format, ...)
 {
+  std::unique_lock<std::mutex> lock(g_debugTraceMutex);
   va_list args;
   va_start(args, format);
   vprintf(format, args);
