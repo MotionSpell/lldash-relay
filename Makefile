@@ -2,13 +2,18 @@ BIN?=bin
 
 include $(shell $(CXX) -dumpmachine | sed "s/.*-//").mk
 
+ifeq ($(DEBUG),1)
+  CXXFLAGS+=-g3
+  LDFLAGS+=-g
+else
+  CXXFLAGS+=-Os
+endif
+
 $(BIN)/evanescent.exe: \
 	$(BIN)/src/main.cpp.o \
 	$(BIN)/src/tls.cpp.o \
 
 PKGS+=openssl
-
-CXXFLAGS+=-Os
 
 ifneq ($(VERSION),)
 CXXFLAGS+=-DVERSION=\"$(VERSION)\"
