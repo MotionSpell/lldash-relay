@@ -3,6 +3,7 @@
 
 #include "tcp_server.h" // IStream
 #include <memory>
+#include <stdexcept>
 
 #define WIN32_LEAN_AND_MEAN
 #include <openssl/ssl.h>
