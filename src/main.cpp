@@ -183,9 +183,8 @@ std::shared_ptr<Resource> getResource(string url)
   return i_res->second;
 }
 
-bool deleteResource(string url)
+bool deleteResourceUnsafe(string url)
 {
-  std::unique_lock<std::mutex> lock(g_mutex);
   auto i_res = resources.find(url);
 
   if(i_res == resources.end())
@@ -193,6 +192,35 @@ bool deleteResource(string url)
 
   resources.erase(i_res);
   return true;
+}
+
+bool deleteResource(string url)
+{
+  int wildcardPos = url.find("*");
+
+  if(wildcardPos == string::npos)
+  {
+    std::unique_lock<std::mutex> lock(g_mutex);
+    return deleteResourceUnsafe(url);
+  }
+  else
+  {
+    DbgTrace("Found wildcard '*' in '%s'\n", url.c_str());
+    std::unique_lock<std::mutex> lock(g_mutex);
+
+    bool res = false;
+
+    for(auto& r : resources)
+    {
+      auto start = r.first.find(url.substr(0, wildcardPos));
+      auto end = r.first.find(url.substr(wildcardPos + 1));
+
+      if(start != string::npos && end != string::npos)
+        res |= deleteResourceUnsafe(r.first);
+    }
+
+    return res;
+  }
 }
 
 std::shared_ptr<Resource> createResource(string url)
