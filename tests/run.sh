@@ -47,7 +47,7 @@ function test_basic
   # push trash data (HTTP-PUT) to URL2
   curl \
     -H "User-Agent: Robocop" \
-    -X PUT -d "NowYouSeeMe!" \
+    -X PUT -d "NowYouSeeMe" \
     http://$host/OmniConsumerProducts/enemies
 
   # push data (HTTP-PUT) to URL2

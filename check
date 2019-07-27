@@ -7,7 +7,13 @@ find src -name "*.cpp" -or -name "*.h" | while read f; do
   uncrustify -q -c scripts/uncrustify.cfg --no-backup "$f"
 done
 
-make -j`nproc`
+if [ $(uname -s) == "Darwin" ]; then
+  CORES=$(sysctl -n hw.logicalcpu)
+else
+  CORES=$(nproc)
+fi
+
+make -j$CORES
 
 readonly t1=$(date +%s)
 ./tests/run.sh $BIN

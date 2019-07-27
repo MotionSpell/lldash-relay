@@ -1,6 +1,8 @@
 BIN?=bin
 
-include $(shell $(CXX) -dumpmachine | sed "s/.*-//").mk
+include $(shell $(CXX) -dumpmachine | sed "s/.*-\([a-zA-Z]*\)[0-9.]*/\1/").mk
+
+CXXFLAGS+=-std=c++14
 
 ifeq ($(DEBUG),1)
   CXXFLAGS+=-g3

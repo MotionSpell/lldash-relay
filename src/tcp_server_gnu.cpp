@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <cstdio> // perror
 #include <cstdarg>
+#include <memory> // make_unique
 #include <thread>
 #include <csignal>
 
@@ -38,12 +39,20 @@ void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> c
 
     void write(const uint8_t* data, size_t len) override
     {
-      ::send(fd, data, len, MSG_NOSIGNAL | MSG_WAITALL);
+      auto flags = MSG_WAITALL;
+#ifdef MSG_NOSIGNAL
+      flags |= MSG_NOSIGNAL
+#endif
+      ::send(fd, data, len, flags);
     }
 
     size_t read(uint8_t* data, size_t len) override
     {
-      return ::recv(fd, data, len, MSG_NOSIGNAL | MSG_WAITALL);
+      auto flags = MSG_WAITALL;
+#ifdef MSG_NOSIGNAL
+      flags |= MSG_NOSIGNAL
+#endif
+      return ::recv(fd, data, len, flags);
     }
 
     const int fd;
@@ -84,7 +93,7 @@ void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> c
     serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
     serverAddress.sin_port = htons(tcpPort);
 
-    int ret = bind(sock, (struct sockaddr*)&serverAddress, sizeof serverAddress);
+    int ret = ::bind(sock, (struct sockaddr*)&serverAddress, sizeof serverAddress);
 
     if(ret < 0)
     {

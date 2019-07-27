@@ -183,17 +183,6 @@ std::shared_ptr<Resource> getResource(string url)
   return i_res->second;
 }
 
-bool deleteResourceUnsafe(string url)
-{
-  auto i_res = resources.find(url);
-
-  if(i_res == resources.end())
-    return false;
-
-  resources.erase(i_res);
-  return true;
-}
-
 bool deleteResource(string url)
 {
   int wildcardPos = url.find("*");
@@ -201,7 +190,13 @@ bool deleteResource(string url)
   if(wildcardPos == string::npos)
   {
     std::unique_lock<std::mutex> lock(g_mutex);
-    return deleteResourceUnsafe(url);
+    auto i_res = resources.find(url);
+
+    if(i_res == resources.end())
+      return false;
+
+    resources.erase(i_res);
+    return true;
   }
   else
   {
@@ -210,13 +205,17 @@ bool deleteResource(string url)
 
     bool res = false;
 
-    for(auto& r : resources)
+    auto r = resources.begin();
+
+    while (r != resources.end())
     {
-      auto start = r.first.find(url.substr(0, wildcardPos));
-      auto end = r.first.find(url.substr(wildcardPos + 1));
+      auto start = r->first.find(url.substr(0, wildcardPos));
+      auto end = r->first.find(url.substr(wildcardPos + 1));
 
       if(start != string::npos && end != string::npos)
-        res |= deleteResourceUnsafe(r.first);
+        r = resources.erase(r);
+      else
+        r++;
     }
 
     return res;
