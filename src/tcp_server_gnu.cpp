@@ -39,18 +39,18 @@ void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> c
 
     void write(const uint8_t* data, size_t len) override
     {
-      auto flags = MSG_WAITALL;
+      int flags = MSG_WAITALL;
 #ifdef MSG_NOSIGNAL
-      flags |= MSG_NOSIGNAL
+      flags |= MSG_NOSIGNAL;
 #endif
       ::send(fd, data, len, flags);
     }
 
     size_t read(uint8_t* data, size_t len) override
     {
-      auto flags = MSG_WAITALL;
+      int flags = MSG_WAITALL;
 #ifdef MSG_NOSIGNAL
-      flags |= MSG_NOSIGNAL
+      flags |= MSG_NOSIGNAL;
 #endif
       return ::recv(fd, data, len, flags);
     }
