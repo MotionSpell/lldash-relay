@@ -237,11 +237,13 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
 
   if(!res)
   {
+    DbgTrace("Get 404 '%s'\n", req.url.c_str());
     writeLine(s, "HTTP/1.1 404 Not Found");
     writeLine(s, "");
     return;
   }
 
+  DbgTrace("Get ... '%s'\n", req.url.c_str());
   writeLine(s, "HTTP/1.1 200 OK");
   writeLine(s, "Transfer-Encoding: chunked");
   writeLine(s, "");
@@ -261,6 +263,7 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
   // last chunk
   writeLine(s, "0");
   writeLine(s, "");
+  DbgTrace("Get 200 '%s'\n", req.url.c_str());
 }
 
 void httpClientThread_DELETE(HttpRequest req, IStream* s)
@@ -284,6 +287,7 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
 {
   auto const res = createResource(req.url);
 
+  DbgTrace("Added ... '%s'\n", req.url.c_str());
   res->resBegin();
 
   bool needsContinue = false;
@@ -345,11 +349,11 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
 
   res->resEnd();
 
-  DbgTrace("Added '%s'\n", req.url.c_str());
 
   writeLine(s, "HTTP/1.1 200 OK");
   writeLine(s, "Content-Length: 0");
   writeLine(s, "");
+  DbgTrace("Added 200 '%s'\n", req.url.c_str());
 }
 
 void httpClientThread_NotImplemented(IStream* s)
