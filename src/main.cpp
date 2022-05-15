@@ -231,7 +231,6 @@ std::shared_ptr<Resource> createResource(string url)
 
 void httpClientThread_GET(HttpRequest req, IStream* s)
 {
-  DbgTrace("Get '%s'\n", req.url.c_str());
 
   auto const res = getResource(req.url);
 
@@ -248,7 +247,7 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
   writeLine(s, "Transfer-Encoding: chunked");
   writeLine(s, "");
 
-  auto onSend = [s] (const uint8_t* buf, int len)
+  auto onSend = [s, req] (const uint8_t* buf, int len)
     {
       char sizeLine[256];
       snprintf(sizeLine, sizeof sizeLine, "%X", len);
@@ -256,6 +255,7 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
 
       s->write(buf, len);
       writeLine(s, "");
+      DbgTrace("Send %d %s\n", len, req.url.c_str());
     };
 
   res->sendWhole(onSend);
@@ -323,7 +323,7 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
       {
         std::vector<uint8_t> buffer(size);
         s->read(buffer.data(), buffer.size());
-
+        DbgTrace("Recv %d %s\n", size, req.url.c_str());
         res->resAppend(buffer.data(), buffer.size());
       }
 
