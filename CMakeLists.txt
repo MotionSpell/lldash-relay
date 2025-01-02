@@ -21,7 +21,7 @@ endif()
 # xxxjack some are actually dependent on the toolchain...
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     add_compile_options(-Wall -Wextra -Werror -fvisibility=default -fvisibility-inlines-hidden -Wno-deprecated-declarations)
-    set(TCP_SERVER_SRC src/tcp_server_win.cpp)
+    set(TCP_SERVER_SRC src/tcp_server_windows.cpp)
     # Debug-specific options
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         add_compile_options(-g3)
@@ -69,12 +69,8 @@ add_executable(evanescent
 )
 target_link_libraries(evanescent PRIVATE OpenSSL::SSL)
 # target_link_libraries(evanescent PRIVATE OpenSSL::Crypto)
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    target_link_libraries(evanescent PRIVATE ws2_32)
+endif()
 
-set_target_properties(evanescent PROPERTIES
-    OUTPUT_NAME "evanescent"
-    SUFFIX ".exe"
-)
-
-install(TARGETS evanescent
-    RUNTIME DESTINATION bin
-)
+signals_install_app(evanescent)
