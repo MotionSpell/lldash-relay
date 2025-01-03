@@ -59,7 +59,7 @@ else()
     message(FATAL_ERROR " Unknown CMAKE_SYSTEM_NAME ${CMAKE_SYSTEM_NAME}")
 endif()
 
-find_package(openssl REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 
 add_executable(evanescent
