@@ -139,7 +139,7 @@ struct Resource
   // and possibly blocking until the resource is completely uploaded.
   void sendWhole(std::function<void(const uint8_t* dst, size_t len)> sendingFunc)
   {
-    int sentBytes = 0;
+    size_t sentBytes = 0;
 
     while(1)
     {
@@ -185,7 +185,7 @@ std::shared_ptr<Resource> getResource(string url)
 
 bool deleteResource(string url)
 {
-  int wildcardPos = url.find("*");
+  size_t wildcardPos = url.find("*");
 
   if(wildcardPos == string::npos)
   {

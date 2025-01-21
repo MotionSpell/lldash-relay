@@ -60,7 +60,7 @@ void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> c
 
   auto clientThread = [clientFunc] (int clientSocket) {
       auto s = make_unique<SocketStream>(clientSocket);
-      clientFunc(move(s));
+      clientFunc(std::move(s));
     };
 
   const int sock = socket(AF_INET, SOCK_STREAM, 0);
