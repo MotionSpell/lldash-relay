@@ -68,7 +68,6 @@ add_executable(evanescent
     ${TCP_SERVER_SRC}
 )
 target_link_libraries(evanescent PRIVATE OpenSSL::SSL)
-# target_link_libraries(evanescent PRIVATE OpenSSL::Crypto)
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     target_link_libraries(evanescent PRIVATE ws2_32)
 endif()
