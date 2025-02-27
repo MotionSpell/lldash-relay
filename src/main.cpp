@@ -139,7 +139,7 @@ struct Resource
   // and possibly blocking until the resource is completely uploaded.
   void sendWhole(std::function<void(const uint8_t* dst, size_t len)> sendingFunc)
   {
-    int sentBytes = 0;
+    size_t sentBytes = 0;
 
     while(1)
     {
@@ -185,7 +185,7 @@ std::shared_ptr<Resource> getResource(string url)
 
 bool deleteResource(string url)
 {
-  int wildcardPos = url.find("*");
+  size_t wildcardPos = url.find("*");
 
   if(wildcardPos == string::npos)
   {
@@ -231,11 +231,21 @@ std::shared_ptr<Resource> createResource(string url)
 
 void httpClientThread_GET(HttpRequest req, IStream* s)
 {
-
   auto const res = getResource(req.url);
 
-  if(!res)
+  if (!res)
   {
+    // Enhanced logging for failed GET request
+    DbgTrace("GET request failed \n");
+    DbgTrace("Method: %s \n", req.method.c_str());
+    DbgTrace("URL: %s \n" , req.url.c_str());
+    DbgTrace("Version: %s \n", req.version.c_str());
+    DbgTrace("Headers:");
+    for (const auto& header : req.headers)
+    {
+      DbgTrace("  %s: %s", header.first.c_str(), header.second.c_str());
+    }
+
     DbgTrace("Get 404 '%s'\n", req.url.c_str());
     writeLine(s, "HTTP/1.1 404 Not Found");
     writeLine(s, "");
@@ -247,16 +257,16 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
   writeLine(s, "Transfer-Encoding: chunked");
   writeLine(s, "");
 
-  auto onSend = [s, req] (const uint8_t* buf, int len)
-    {
-      char sizeLine[256];
-      snprintf(sizeLine, sizeof sizeLine, "%X", len);
-      writeLine(s, sizeLine);
+  auto onSend = [s, req](const uint8_t* buf, int len)
+  {
+    char sizeLine[256];
+    snprintf(sizeLine, sizeof sizeLine, "%X", len);
+    writeLine(s, sizeLine);
 
-      s->write(buf, len);
-      writeLine(s, "");
-      DbgTrace("Send %d %s\n", len, req.url.c_str());
-    };
+    s->write(buf, len);
+    writeLine(s, "");
+    DbgTrace("Send %d %s\n", len, req.url.c_str());
+  };
 
   res->sendWhole(onSend);
 
