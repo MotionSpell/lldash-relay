@@ -375,27 +375,42 @@ void httpClientThread_NotImplemented(IStream* s)
 
 void httpMain(IStream* s)
 {
-  auto req = parseRequest(s);
+    while (true) {
+        HttpRequest req;
+        try {
+            req = parseRequest(s);
+        } catch (...) {
+            break; // error or timeout
+        }
 
-  if(0)
-  {
-    DbgTrace("[Request] '%s' '%s' '%s'\n", req.method.c_str(), req.url.c_str(), req.version.c_str());
+        if (req.method.empty())
+            break; // client closed connection or timeout
 
-    for(auto& hdr : req.headers)
-      DbgTrace("[Header] '%s' '%s'\n", hdr.first.c_str(), hdr.second.c_str());
-  }
+        DbgTrace("HTTP %s %s\n", req.method.c_str(), req.url.c_str());
 
-  if(req.method == "GET")
-    httpClientThread_GET(req, s);
-  else if(req.method == "DELETE")
-    httpClientThread_DELETE(req, s);
-  else if(req.method == "PUT" || req.method == "POST")
-    httpClientThread_PUT(req, s);
-  else
-  {
-    DbgTrace("Method not implemented: '%s'\n", req.method.c_str());
-    httpClientThread_NotImplemented(s);
-  }
+        if(req.method == "GET") {
+            httpClientThread_GET(req, s);
+            DbgTrace("HTTP %s %s -> END\n", req.method.c_str(), req.url.c_str());
+        }
+        else if(req.method == "DELETE") {
+            httpClientThread_DELETE(req, s);
+            DbgTrace("HTTP %s %s -> END\n", req.method.c_str(), req.url.c_str());
+        }
+        else if(req.method == "PUT" || req.method == "POST") {
+            httpClientThread_PUT(req, s);
+            DbgTrace("HTTP %s %s -> END\n", req.method.c_str(), req.url.c_str());
+        }
+        else
+        {
+            DbgTrace("Method not implemented: '%s'\n", req.method.c_str());
+            httpClientThread_NotImplemented(s);
+        }
+
+        // Check for Connection: close
+        auto it = req.headers.find("Connection");
+        if (it != req.headers.end() && it->second == "close")
+            break;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

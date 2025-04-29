@@ -48,14 +48,30 @@ void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> c
 
     size_t read(uint8_t* data, size_t len) override
     {
-      auto res = ::recv(fd, (char*)data, len, MSG_WAITALL);
+      // Use select() for timeout
+      fd_set rfds;
+      FD_ZERO(&rfds);
+      FD_SET(fd, &rfds);
 
-      if(res < 0)
-      {
-        fprintf(stderr, "recv() error: %d\n", WSAGetLastError());
-        throw runtime_error("socket error on recv()");
+      struct timeval tv;
+      tv.tv_sec = 10; // 10 second timeout
+      tv.tv_usec = 0;
+
+      int retval = select(0, &rfds, NULL, NULL, &tv);
+      if (retval == SOCKET_ERROR) {
+        fprintf(stderr, "select() last error: %d\n", WSAGetLastError());
+        return 0;
+      } else if (retval == 0) {
+        // Timeout
+        return 0;
       }
 
+      int res = ::recv(fd, (char*)data, len, 0);
+      if(res < 0)
+      {
+        fprintf(stderr, "recv() last error: %d\n", WSAGetLastError());
+        return 0;
+      }
       return res;
     }
 

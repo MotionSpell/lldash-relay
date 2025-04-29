@@ -6,6 +6,8 @@
 #include <memory> // make_unique
 #include <thread>
 #include <csignal>
+#include <arpa/inet.h> // for inet_ntoa
+#include <sys/select.h>
 
 using namespace std;
 
@@ -48,6 +50,24 @@ void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> c
 
     size_t read(uint8_t* data, size_t len) override
     {
+      // Set up select() for timeout
+      fd_set rfds;
+      FD_ZERO(&rfds);
+      FD_SET(fd, &rfds);
+
+      struct timeval tv;
+      tv.tv_sec = 10; // 10 second timeout
+      tv.tv_usec = 0;
+
+      int retval = select(fd + 1, &rfds, NULL, NULL, &tv);
+      if (retval == -1) {
+        perror("select()");
+        return 0;
+      } else if (retval == 0) {
+        // Timeout
+        return 0;
+      }
+
       int flags = MSG_WAITALL;
 #ifdef MSG_NOSIGNAL
       flags |= MSG_NOSIGNAL;
@@ -128,6 +148,12 @@ void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> c
 
       perror("accept");
     }
+
+    // Log connection info
+    char ip[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(client_address.sin_addr), ip, INET_ADDRSTRLEN);
+    int port = ntohs(client_address.sin_port);
+    DbgTrace("Accepted connection: fd=%d from %s:%d\n", clientSocket, ip, port);
 
     auto t = thread(clientThread, clientSocket);
     t.detach();
