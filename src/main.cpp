@@ -231,7 +231,6 @@ std::shared_ptr<Resource> createResource(string url)
   return resources[url];
 }
 
-
 struct Config
 {
   int port = 9000;
@@ -239,19 +238,17 @@ struct Config
   int long_poll_timeout_ms = 5000;
 };
 
-Config g_cfg;
-
 void httpClientThread_GET(HttpRequest req, IStream* s)
 {
   DbgTrace("event=request_received method=GET url=%s version=%s\n", req.url.c_str(), req.version.c_str());
   auto res = getResource(req.url);
 
   // Long polling
-  if (g_cfg.long_poll_timeout_ms && !res)
+  if (s->long_poll_timeout_ms && !res)
   {
     const int interval_ms = 100;
     int waited = 0;
-    while (waited < g_cfg.long_poll_timeout_ms) {
+    while (waited < s->long_poll_timeout_ms) {
       std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms));
       waited += interval_ms;
       res = getResource(req.url);
@@ -467,18 +464,18 @@ int main(int argc, char const* argv[])
 {
   try
   {
-    g_cfg = parseCommandLine(argc, argv);
+    auto cfg = parseCommandLine(argc, argv);
 
 #ifndef VERSION
 #define VERSION "0"
 #endif
 
     DbgTrace("event=server_start port=%d version=%s long_poll=%s long_poll_timeout_ms=%d\n",
-             g_cfg.port, VERSION, g_cfg.long_poll_timeout_ms ? "true" : "false", g_cfg.long_poll_timeout_ms);
+             cfg.port, VERSION, cfg.long_poll_timeout_ms ? "true" : "false", cfg.long_poll_timeout_ms);
 
     auto clientFunction = &httpMain;
 
-    if(g_cfg.tls)
+    if(cfg.tls)
       clientFunction = &tlsMain;
 
     auto clientFunctionCatcher = [&] (std::unique_ptr<IStream> stream)
@@ -494,7 +491,7 @@ int main(int argc, char const* argv[])
         DbgTrace("event=connection_closed reason=client_closed\n");
       };
 
-    runTcpServer(g_cfg.port, clientFunctionCatcher);
+    runTcpServer(cfg.port, clientFunctionCatcher);
     DbgTrace("event=server_closed\n");
     return 0;
   }
@@ -504,4 +501,3 @@ int main(int argc, char const* argv[])
     return 1;
   }
 }
-
