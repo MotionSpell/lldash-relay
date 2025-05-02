@@ -10,6 +10,8 @@
 #include <vector>
 #include <mutex>
 #include <condition_variable>
+#include <thread> // std::this_thread
+#include <chrono> // std::chrono::milliseconds
 
 #include "tcp_server.h"
 
@@ -232,7 +234,24 @@ std::shared_ptr<Resource> createResource(string url)
 void httpClientThread_GET(HttpRequest req, IStream* s)
 {
   DbgTrace("event=request_received method=GET url=%s version=%s\n", req.url.c_str(), req.version.c_str());
-  auto const res = getResource(req.url);
+  auto res = getResource(req.url);
+
+  // Long polling: wait up to 5 seconds if resource does not exist
+  if (!res)
+  {
+    const int timeout_ms = 5000;
+    const int interval_ms = 100;
+    int waited = 0;
+    while (waited < timeout_ms) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms));
+      waited += interval_ms;
+      res = getResource(req.url);
+      if (res) {
+        DbgTrace("event=resource_appeared url=%s waited_ms=%d\n", req.url.c_str(), waited);
+        break;
+      }
+    }
+  }
 
   if (!res)
   {
