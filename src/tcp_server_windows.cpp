@@ -6,6 +6,8 @@
 #include <thread>
 #include <csignal>
 #include <mutex>
+#include <chrono>
+#include <ctime>
 
 using namespace std;
 
@@ -151,10 +153,24 @@ static std::mutex g_debugTraceMutex;
 
 void DbgTrace(const char* format, ...)
 {
-  std::unique_lock<std::mutex> lock(g_debugTraceMutex);
-  va_list args;
-  va_start(args, format);
-  vprintf(format, args);
-  va_end(args);
+    std::unique_lock<std::mutex> lock(g_debugTraceMutex);
+
+    // Get current time
+    auto now = std::chrono::system_clock::now();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    struct tm tm;
+    localtime_s(&tm, &t);
+
+    // Print timestamp
+    fprintf(stderr, "%04d-%02d-%02d %02d:%02d:%02d.%03lld ",
+        tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+        tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<long long>(ms.count()));
+
+    // Print log message
+    va_list args;
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
 }
 
