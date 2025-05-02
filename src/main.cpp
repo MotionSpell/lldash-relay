@@ -231,15 +231,28 @@ std::shared_ptr<Resource> createResource(string url)
   return resources[url];
 }
 
+
+struct Config
+{
+  int port = 9000;
+  bool tls = false;
+  bool long_poll = false;
+  int long_poll_timeout_ms = 5000;
+};
+
+
+
+Config g_cfg;
+
 void httpClientThread_GET(HttpRequest req, IStream* s)
 {
   DbgTrace("event=request_received method=GET url=%s version=%s\n", req.url.c_str(), req.version.c_str());
   auto res = getResource(req.url);
 
-  // Long polling: wait up to 5 seconds if resource does not exist
-  if (!res)
+  // Long polling
+  if (g_cfg.long_poll && !res)
   {
-    const int timeout_ms = 5000;
+    const int timeout_ms = g_cfg.long_poll_timeout_ms;
     const int interval_ms = 100;
     int waited = 0;
     while (waited < timeout_ms) {
@@ -390,6 +403,14 @@ void httpMain(IStream* s)
 {
   auto req = parseRequest(s);
 
+  if(0)
+  {
+    DbgTrace("[Request] '%s' '%s' '%s'\n", req.method.c_str(), req.url.c_str(), req.version.c_str());
+
+    for(auto& hdr : req.headers)
+      DbgTrace("[Header] '%s' '%s'\n", hdr.first.c_str(), hdr.second.c_str());
+  }
+
   if(req.method == "GET")
     httpClientThread_GET(req, s);
   else if(req.method == "DELETE")
@@ -407,11 +428,6 @@ void httpMain(IStream* s)
 
 extern void tlsMain(IStream* tcpStream);
 
-struct Config
-{
-  int port = 9000;
-  bool tls = false;
-};
 
 Config parseCommandLine(int argc, char const* argv[])
 {
@@ -439,6 +455,10 @@ Config parseCommandLine(int argc, char const* argv[])
       cfg.port = atoi(pop().c_str());
     else if(word == "--tls")
       cfg.tls = true;
+    else if(word == "--long_poll")
+      cfg.long_poll = true;
+    else if(word == "--long_poll_timeout")
+      cfg.long_poll_timeout_ms = atoi(pop().c_str()) * 1000;
     else
       throw runtime_error("invalid command line");
   }
@@ -453,17 +473,18 @@ int main(int argc, char const* argv[])
 {
   try
   {
-    auto cfg = parseCommandLine(argc, argv);
+    g_cfg = parseCommandLine(argc, argv);
 
 #ifndef VERSION
 #define VERSION "0"
 #endif
 
-    DbgTrace("event=server_start port=%d version=%s\n", cfg.port, VERSION);
+    DbgTrace("event=server_start port=%d version=%s long_poll=%d long_poll_timeout_ms=%d\n",
+             g_cfg.port, VERSION, g_cfg.long_poll, g_cfg.long_poll_timeout_ms);
 
     auto clientFunction = &httpMain;
 
-    if(cfg.tls)
+    if(g_cfg.tls)
       clientFunction = &tlsMain;
 
     auto clientFunctionCatcher = [&] (std::unique_ptr<IStream> stream)
@@ -479,7 +500,7 @@ int main(int argc, char const* argv[])
         DbgTrace("event=connection_closed reason=client_closed\n");
       };
 
-    runTcpServer(cfg.port, clientFunctionCatcher);
+    runTcpServer(g_cfg.port, clientFunctionCatcher);
     DbgTrace("event=server_closed\n");
     return 0;
   }
