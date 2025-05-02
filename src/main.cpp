@@ -236,11 +236,8 @@ struct Config
 {
   int port = 9000;
   bool tls = false;
-  bool long_poll = false;
   int long_poll_timeout_ms = 5000;
 };
-
-
 
 Config g_cfg;
 
@@ -250,12 +247,11 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
   auto res = getResource(req.url);
 
   // Long polling
-  if (g_cfg.long_poll && !res)
+  if (g_cfg.long_poll_timeout_ms && !res)
   {
-    const int timeout_ms = g_cfg.long_poll_timeout_ms;
     const int interval_ms = 100;
     int waited = 0;
-    while (waited < timeout_ms) {
+    while (waited < g_cfg.long_poll_timeout_ms) {
       std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms));
       waited += interval_ms;
       res = getResource(req.url);
@@ -456,8 +452,6 @@ Config parseCommandLine(int argc, char const* argv[])
     else if(word == "--tls")
       cfg.tls = true;
     else if(word == "--long_poll")
-      cfg.long_poll = true;
-    else if(word == "--long_poll_timeout")
       cfg.long_poll_timeout_ms = atoi(pop().c_str()) * 1000;
     else
       throw runtime_error("invalid command line");
@@ -479,8 +473,8 @@ int main(int argc, char const* argv[])
 #define VERSION "0"
 #endif
 
-    DbgTrace("event=server_start port=%d version=%s long_poll=%d long_poll_timeout_ms=%d\n",
-             g_cfg.port, VERSION, g_cfg.long_poll, g_cfg.long_poll_timeout_ms);
+    DbgTrace("event=server_start port=%d version=%s long_poll=%s long_poll_timeout_ms=%d\n",
+             g_cfg.port, VERSION, g_cfg.long_poll_timeout_ms ? "true" : "false", g_cfg.long_poll_timeout_ms);
 
     auto clientFunction = &httpMain;
 
