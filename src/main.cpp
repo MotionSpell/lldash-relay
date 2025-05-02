@@ -491,7 +491,7 @@ int main(int argc, char const* argv[])
         DbgTrace("event=connection_closed reason=client_closed\n");
       };
 
-    runTcpServer(cfg.port, clientFunctionCatcher);
+    runTcpServer(cfg.port, cfg.long_poll_timeout_ms, clientFunctionCatcher);
     DbgTrace("event=server_closed\n");
     return 0;
   }

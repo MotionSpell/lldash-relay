@@ -15,7 +15,7 @@ struct IStream
   int long_poll_timeout_ms;
 };
 
-void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> clientFunc);
+void runTcpServer(int tcpPort, int long_poll_timeout_ms, std::function<void(std::unique_ptr<IStream> s)> clientFunc);
 
 void DbgTrace(const char* format, ...);
 

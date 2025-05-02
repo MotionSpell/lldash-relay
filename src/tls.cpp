@@ -54,6 +54,8 @@ struct BioAdapter
 // Allows IStream users to talk to OpenSSL
 struct StreamAdapter : IStream
 {
+  StreamAdapter(int long_poll_timeout_ms) : IStream(long_poll_timeout_ms) {}
+
   SSL* sslStream;
 
   // HTTP wants to write data
@@ -140,7 +142,7 @@ void tlsMain(IStream* tcpStream)
     throw runtime_error("TLS: can't create new BIO");
   }
 
-  StreamAdapter streamAdapter {};
+  StreamAdapter streamAdapter(tcpStream->long_poll_timeout_ms);
   streamAdapter.sslStream = ssl.get();
 
   BioAdapter bioAdapter {};

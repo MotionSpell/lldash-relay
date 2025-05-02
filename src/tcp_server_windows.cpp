@@ -24,11 +24,11 @@ static void sigIntHandler(int)
   closesocket(socket); // unblock call to 'accept' below
 }
 
-void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> clientFunc)
+void runTcpServer(int tcpPort, int long_poll_timeout_ms, std::function<void(std::unique_ptr<IStream> s)> clientFunc)
 {
   struct SocketStream : IStream
   {
-    SocketStream(SOCKET fd_) : fd(fd_)
+    SocketStream(SOCKET fd_, int long_poll_timeout_ms) : IStream(long_poll_timeout_ms), fd(fd_)
     {
     }
 
@@ -64,8 +64,8 @@ void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> c
     const SOCKET fd;
   };
 
-  auto clientThread = [clientFunc] (int clientSocket) {
-      auto s = make_unique<SocketStream>(clientSocket);
+  auto clientThread = [clientFunc, long_poll_timeout_ms] (int clientSocket) {
+      auto s = make_unique<SocketStream>(clientSocket, long_poll_timeout_ms);
       clientFunc(move(s));
     };
 
