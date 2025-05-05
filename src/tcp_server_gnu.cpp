@@ -6,6 +6,8 @@
 #include <memory> // make_unique
 #include <thread>
 #include <csignal>
+#include <chrono>
+#include <ctime>
 
 using namespace std;
 
@@ -24,11 +26,11 @@ static void sigIntHandler(int)
   close(socket);
 }
 
-void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> clientFunc)
+void runTcpServer(int tcpPort, int long_poll_timeout_ms, std::function<void(std::unique_ptr<IStream> s)> clientFunc)
 {
   struct SocketStream : IStream
   {
-    SocketStream(int fd_) : fd(fd_)
+    SocketStream(int fd_, int long_poll_timeout_ms) : IStream(long_poll_timeout_ms), fd(fd_)
     {
     }
 
@@ -58,8 +60,8 @@ void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> c
     const int fd;
   };
 
-  auto clientThread = [clientFunc] (int clientSocket) {
-      auto s = make_unique<SocketStream>(clientSocket);
+  auto clientThread = [clientFunc, long_poll_timeout_ms] (int clientSocket) {
+      auto s = make_unique<SocketStream>(clientSocket, long_poll_timeout_ms);
       clientFunc(std::move(s));
     };
 
@@ -138,9 +140,22 @@ void runTcpServer(int tcpPort, std::function<void(std::unique_ptr<IStream> s)> c
 
 void DbgTrace(const char* format, ...)
 {
-  va_list args;
-  va_start(args, format);
-  vprintf(format, args);
-  va_end(args);
+    // Get current time
+    auto now = std::chrono::system_clock::now();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    struct tm tm;
+    localtime_r(&t, &tm);
+
+    // Print timestamp
+    fprintf(stderr, "%04d-%02d-%02d %02d:%02d:%02d.%03lld ",
+        tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+        tm.tm_hour, tm.tm_min, tm.tm_sec, ms.count());
+
+    // Print log message
+    va_list args;
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
 }
 

@@ -10,6 +10,8 @@
 #include <vector>
 #include <mutex>
 #include <condition_variable>
+#include <thread> // std::this_thread
+#include <chrono> // std::chrono::milliseconds
 
 #include "tcp_server.h"
 
@@ -229,30 +231,43 @@ std::shared_ptr<Resource> createResource(string url)
   return resources[url];
 }
 
+struct Config
+{
+  int port = 9000;
+  bool tls = false;
+  int long_poll_timeout_ms = 0;
+};
+
 void httpClientThread_GET(HttpRequest req, IStream* s)
 {
-  auto const res = getResource(req.url);
+  DbgTrace("event=request_received method=GET url=%s version=%s\n", req.url.c_str(), req.version.c_str());
+  auto res = getResource(req.url);
+
+  // Long polling
+  if (s->long_poll_timeout_ms && !res)
+  {
+    const int interval_ms = 100;
+    int waited = 0;
+    while (waited < s->long_poll_timeout_ms) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms));
+      waited += interval_ms;
+      res = getResource(req.url);
+      if (res) {
+        DbgTrace("event=resource_appeared url=%s waited_ms=%d\n", req.url.c_str(), waited);
+        break;
+      }
+    }
+  }
 
   if (!res)
   {
-    // Enhanced logging for failed GET request
-    DbgTrace("GET request failed \n");
-    DbgTrace("Method: %s \n", req.method.c_str());
-    DbgTrace("URL: %s \n" , req.url.c_str());
-    DbgTrace("Version: %s \n", req.version.c_str());
-    DbgTrace("Headers:");
-    for (const auto& header : req.headers)
-    {
-      DbgTrace("  %s: %s", header.first.c_str(), header.second.c_str());
-    }
-
-    DbgTrace("Get 404 '%s'\n", req.url.c_str());
+    DbgTrace("event=error_reply method=GET url=%s status=404 reason=not_found\n", req.url.c_str());
     writeLine(s, "HTTP/1.1 404 Not Found");
     writeLine(s, "");
     return;
   }
 
-  DbgTrace("Get ... '%s'\n", req.url.c_str());
+  DbgTrace("event=resource_served url=%s\n", req.url.c_str());
   writeLine(s, "HTTP/1.1 200 OK");
   writeLine(s, "Transfer-Encoding: chunked");
   writeLine(s, "");
@@ -265,7 +280,7 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
 
     s->write(buf, len);
     writeLine(s, "");
-    DbgTrace("Send %d %s\n", len, req.url.c_str());
+    DbgTrace("event=chunk_sent url=%s chunk_size=%d\n", req.url.c_str(), len);
   };
 
   res->sendWhole(onSend);
@@ -273,31 +288,34 @@ void httpClientThread_GET(HttpRequest req, IStream* s)
   // last chunk
   writeLine(s, "0");
   writeLine(s, "");
-  DbgTrace("Get 200 '%s'\n", req.url.c_str());
+  DbgTrace("event=request_completed method=GET url=%s status=200\n", req.url.c_str());
 }
 
 void httpClientThread_DELETE(HttpRequest req, IStream* s)
 {
-  DbgTrace("Delete '%s'\n", req.url.c_str());
+  DbgTrace("event=request_received method=DELETE url=%s\n", req.url.c_str());
 
   auto const res = deleteResource(req.url);
 
   if(!res)
   {
+    DbgTrace("event=error_reply method=DELETE url=%s status=404 reason=not_found\n", req.url.c_str());
     writeLine(s, "HTTP/1.1 404 Not Found");
     writeLine(s, "");
     return;
   }
 
+  DbgTrace("event=resource_deleted url=%s\n", req.url.c_str());
   writeLine(s, "HTTP/1.1 200 OK");
   writeLine(s, "");
+  DbgTrace("event=request_completed method=DELETE url=%s status=200\n", req.url.c_str());
 }
 
 void httpClientThread_PUT(HttpRequest req, IStream* s)
 {
+  DbgTrace("event=request_received method=PUT url=%s\n", req.url.c_str());
   auto const res = createResource(req.url);
 
-  DbgTrace("Added ... '%s'\n", req.url.c_str());
   res->resBegin();
 
   bool needsContinue = false;
@@ -333,7 +351,7 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
       {
         std::vector<uint8_t> buffer(size);
         s->read(buffer.data(), buffer.size());
-        DbgTrace("Recv %d %s\n", size, req.url.c_str());
+        DbgTrace("event=resource_chunk_received url=%s chunk_size=%d\n", req.url.c_str(), size);
         res->resAppend(buffer.data(), buffer.size());
       }
 
@@ -352,22 +370,23 @@ void httpClientThread_PUT(HttpRequest req, IStream* s)
     {
       std::vector<uint8_t> buffer(size);
       s->read(buffer.data(), buffer.size());
-
+      DbgTrace("event=resource_chunk_received url=%s chunk_size=%d\n", req.url.c_str(), size);
       res->resAppend(buffer.data(), buffer.size());
     }
   }
 
   res->resEnd();
 
-
+  DbgTrace("event=resource_created url=%s\n", req.url.c_str());
   writeLine(s, "HTTP/1.1 200 OK");
   writeLine(s, "Content-Length: 0");
   writeLine(s, "");
-  DbgTrace("Added 200 '%s'\n", req.url.c_str());
+  DbgTrace("event=request_completed method=PUT url=%s status=200\n", req.url.c_str());
 }
 
-void httpClientThread_NotImplemented(IStream* s)
+void httpClientThread_NotImplemented(IStream* s, const std::string& method)
 {
+  DbgTrace("event=error_reply method=%s status=500 reason=not_implemented\n", method.c_str());
   writeLine(s, "HTTP/1.1 500 Not implemented");
   writeLine(s, "Content-Length: 0");
   writeLine(s, "");
@@ -393,8 +412,7 @@ void httpMain(IStream* s)
     httpClientThread_PUT(req, s);
   else
   {
-    DbgTrace("Method not implemented: '%s'\n", req.method.c_str());
-    httpClientThread_NotImplemented(s);
+    httpClientThread_NotImplemented(s, req.method);
   }
 }
 
@@ -403,11 +421,6 @@ void httpMain(IStream* s)
 
 extern void tlsMain(IStream* tcpStream);
 
-struct Config
-{
-  int port = 9000;
-  bool tls = false;
-};
 
 Config parseCommandLine(int argc, char const* argv[])
 {
@@ -435,6 +448,8 @@ Config parseCommandLine(int argc, char const* argv[])
       cfg.port = atoi(pop().c_str());
     else if(word == "--tls")
       cfg.tls = true;
+    else if(word == "--long-poll")
+      cfg.long_poll_timeout_ms = atoi(pop().c_str());
     else
       throw runtime_error("invalid command line");
   }
@@ -455,7 +470,8 @@ int main(int argc, char const* argv[])
 #define VERSION "0"
 #endif
 
-    printf("Evanescent version: %s\n", VERSION);
+    DbgTrace("event=server_start port=%d version=%s long_poll=%s long_poll_timeout_ms=%d\n",
+             cfg.port, VERSION, cfg.long_poll_timeout_ms ? "true" : "false", cfg.long_poll_timeout_ms);
 
     auto clientFunction = &httpMain;
 
@@ -470,17 +486,18 @@ int main(int argc, char const* argv[])
         }
         catch(std::exception const& e)
         {
-          fprintf(stderr, "Error: %s\n", e.what());
+          DbgTrace("event=connection_error error=%s\n", e.what());
         }
+        DbgTrace("event=connection_closed reason=client_closed\n");
       };
 
-    runTcpServer(cfg.port, clientFunctionCatcher);
+    runTcpServer(cfg.port, cfg.long_poll_timeout_ms, clientFunctionCatcher);
+    DbgTrace("event=server_closed\n");
     return 0;
   }
   catch(exception const& e)
   {
-    fprintf(stderr, "Fatal: %s\n", e.what());
+    DbgTrace("event=server_fatal error=%s\n", e.what());
     return 1;
   }
 }
-

@@ -28,7 +28,7 @@ Usage examples:
 ```sh
 $ evanescent --port 10333
 $ evanescent --tls --port 10777
-$ evanescent --tls
+$ evanescent --long-poll 5000 # accepts client connections on non-existing resources, value in ms. 
 
 ```
 
