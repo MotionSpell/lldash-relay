@@ -134,7 +134,7 @@ void runTcpServer(int tcpPort, int long_poll_timeout_ms, std::function<void(std:
 
     if(clientSocket < 0)
     {
-      if(g_socket == -1)
+      if(g_socket == (SOCKET)-1)
         break; // exit thread
 
       fprintf(stderr, "accept() last error: %d\n", WSAGetLastError());
