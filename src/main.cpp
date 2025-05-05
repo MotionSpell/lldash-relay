@@ -235,7 +235,7 @@ struct Config
 {
   int port = 9000;
   bool tls = false;
-  int long_poll_timeout_ms = 5000;
+  int long_poll_timeout_ms = 0;
 };
 
 void httpClientThread_GET(HttpRequest req, IStream* s)
@@ -448,8 +448,8 @@ Config parseCommandLine(int argc, char const* argv[])
       cfg.port = atoi(pop().c_str());
     else if(word == "--tls")
       cfg.tls = true;
-    else if(word == "--long_poll")
-      cfg.long_poll_timeout_ms = atoi(pop().c_str()) * 1000;
+    else if(word == "--long-poll")
+      cfg.long_poll_timeout_ms = atoi(pop().c_str());
     else
       throw runtime_error("invalid command line");
   }
