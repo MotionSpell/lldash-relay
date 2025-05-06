@@ -148,9 +148,9 @@ void DbgTrace(const char* format, ...)
     localtime_r(&t, &tm);
 
     // Print timestamp
-    fprintf(stderr, "%04d-%02d-%02d %02d:%02d:%02d.%03lld ",
+    fprintf(stderr, "lldash-relay: t=%04d-%02d-%02dT%02d:%02d:%02d.%03lld ",
         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-        tm.tm_hour, tm.tm_min, tm.tm_sec, ms.count());
+        tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<long long>(ms.count()));
 
     // Print log message
     va_list args;
