@@ -233,6 +233,8 @@ std::shared_ptr<Resource> createResource(string url)
 
 struct Config
 {
+  bool usage_only = false;
+
   int port = 9000;
   bool tls = false;
   int long_poll_timeout_ms = 0;
@@ -444,7 +446,9 @@ Config parseCommandLine(int argc, char const* argv[])
   {
     auto word = pop();
 
-    if(word == "--port")
+    if(word == "--help")
+      cfg.usage_only = true;
+    else if(word == "--port")
       cfg.port = atoi(pop().c_str());
     else if(word == "--tls")
       cfg.tls = true;
@@ -465,6 +469,11 @@ int main(int argc, char const* argv[])
   try
   {
     auto cfg = parseCommandLine(argc, argv);
+
+    if (cfg.usage_only) {
+      printf("Usage: %s [--port <num>] [--tls] [--long-poll <milliseconds>]\n", argv[0]);
+      return 0;
+    }
 
 #ifndef VERSION
 #define VERSION "0"
