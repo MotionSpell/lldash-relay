@@ -80,7 +80,7 @@ void runTcpServer(int tcpPort, int long_poll_timeout_ms, std::function<void(std:
 
   {
     int one = 1;
-    int ret = setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &one, sizeof one);
+    int ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
 
     if(ret < 0)
     {
