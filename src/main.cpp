@@ -237,7 +237,7 @@ struct Config
 
   int port = 9000;
   bool tls = false;
-  int long_poll_timeout_ms = 0;
+  int long_poll_timeout_ms = 2000;
 };
 
 void httpClientThread_GET(HttpRequest req, IStream* s)
@@ -471,7 +471,7 @@ int main(int argc, char const* argv[])
     auto cfg = parseCommandLine(argc, argv);
 
     if (cfg.usage_only) {
-      printf("Usage: %s [--port <num>] [--tls] [--long-poll <milliseconds>]\n", argv[0]);
+      printf("Usage: %s [--port <num>] [--tls] [--long-poll <milliseconds:default=2000,disable=0>]\n", argv[0]);
       return 0;
     }
 
