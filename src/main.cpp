@@ -17,6 +17,16 @@
 
 using namespace std;
 
+const char *get_version() {
+#ifdef LLDASH_VERSION
+#define LLDASH_VERSION_STRINGIFY2(x) LLDASH_VERSION_STRINGIFY(x)
+#define LLDASH_VERSION_STRINGIFY(x) #x
+  return LLDASH_VERSION_STRINGIFY2(LLDASH_VERSION);
+#else
+	return "unknown";
+#endif
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // http_client.cpp
 
@@ -475,12 +485,8 @@ int main(int argc, char const* argv[])
       return 0;
     }
 
-#ifndef VERSION
-#define VERSION "0"
-#endif
-
     DbgTrace("event=server_start port=%d version=%s long_poll=%s long_poll_timeout_ms=%d\n",
-             cfg.port, VERSION, cfg.long_poll_timeout_ms ? "true" : "false", cfg.long_poll_timeout_ms);
+             cfg.port, get_version(), cfg.long_poll_timeout_ms ? "true" : "false", cfg.long_poll_timeout_ms);
 
     auto clientFunction = &httpMain;
 
