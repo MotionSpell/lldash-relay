@@ -62,14 +62,14 @@ endif()
 find_package(OpenSSL REQUIRED)
 
 
-add_executable(evanescent
+add_executable(lldash-relay
     src/main.cpp
     src/tls.cpp
     ${TCP_SERVER_SRC}
 )
-target_link_libraries(evanescent PRIVATE OpenSSL::SSL)
+target_link_libraries(lldash-relay PRIVATE OpenSSL::SSL)
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    target_link_libraries(evanescent PRIVATE ws2_32)
+    target_link_libraries(lldash-relay PRIVATE ws2_32)
 endif()
 
-signals_install_app(evanescent)
+signals_install_app(lldash-relay)
